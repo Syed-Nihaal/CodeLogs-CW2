@@ -1,0 +1,7 @@
+logo.png 	-	Image made on Canva
+home.png 	-	https://icons8.com/icon/iYcOAebNCEeX/exterior
+gitHub.png	- 	https://icons8.com/icon/FVTvJkWPqGJ3/github
+logout.png	-	https://icons8.com/icon/yYVvZRRwNT5v/logout
+post.png 	- 	https://icons8.com/icon/k3VIMLgX0A6W/upload
+postboard.png 	-	https://icons8.com/icon/dfiNvwAesiYh/noticeboard
+background.gif	-	https://media.licdn.com/dms/image/v2/C5612AQFQoZYhlduycA/article-cover_image-shrink_600_2000/article-cover_image-shrink_600_2000/0/1626287779419?e=2147483647&v=beta&t=qJRYeRAH07qsyRsjSX6IbBiDcMwQrUVEzd1M-vfhsSQ

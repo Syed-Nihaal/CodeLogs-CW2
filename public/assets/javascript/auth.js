@@ -1,168 +1,236 @@
 // Blog Manager for Code Blog
-class BlogManager {
+class AuthManager {
     constructor() {
-        this.currentPage = 'home';
-        this.postsKey = 'posts';
+        // Session keys for tracking logged-in user
+        this.loggedInUserKey = 'loggedInUser';
+        this.sessionUserKey = 'currentUser';
         
         this.init();
     }
 
+    /**
+     * Initialise authentication manager
+     * Set up event listeners and check login status
+     */
     init() {
         this.setupEventListeners();
-        this.showPage('home');
-        
-        // Check if we need to load posts for home page
-        const user = window.authManager.getCurrentUser();
-        if (user) {
-            this.loadRecentPosts();
-        }
+        this.checkLoginStatus();
     }
 
+    /**
+     * Set up authentication-related event listeners
+     */
     setupEventListeners() {
-        // Navigation links
-        document.querySelectorAll('.nav-link').forEach(link => {
+        // Logout button
+        const logoutButton = document.getElementById('logoutButton');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', (e) => this.handleLogout(e));
+        }
+
+        // Navigation link handlers for auth buttons and links
+        document.querySelectorAll('#authButtons a, .alt-link a, .alt-link-a a, .alt-link-b a').forEach(link => {
             link.addEventListener('click', (e) => {
-                e.preventDefault();
                 const page = e.currentTarget.getAttribute('data-page');
-                this.showPage(page);
+                if (page && window.blogManager) {
+                    e.preventDefault();
+                    window.blogManager.showPage(page);
+                }
             });
         });
+    }
 
-        // Auth buttons
-        document.querySelectorAll('#authButtons a').forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.preventDefault();
-                const page = e.currentTarget.getAttribute('data-page');
-                this.showPage(page);
-            });
-        });
-
-        // Create post form
-        const createPostForm = document.getElementById('createPostForm');
-        if (createPostForm) {
-            createPostForm.addEventListener('submit', (e) => this.handleCreatePost(e));
+    /**
+     * Check if user is currently logged in
+     * Update UI accordingly
+     */
+    checkLoginStatus() {
+        const user = this.getCurrentUser();
+        
+        if (user) {
+            this.updateUIForLoggedInUser(user);
+        } else {
+            this.updateUIForGuest();
         }
     }
 
-    showPage(page) {
-        // Hide all pages
-        document.querySelectorAll('.page-content').forEach(el => {
-            el.classList.add('hidden');
-        });
+    /**
+     * Get currently logged-in user
+     * @returns {string|null} Username or null if not logged in
+     */
+    getCurrentUser() {
+        // Check sessionStorage first (for current session)
+        let user = sessionStorage.getItem(this.sessionUserKey);
         
-        // Show selected page
-        document.getElementById(`${page}-page`).classList.remove('hidden');
-        
-        // Update navigation
-        document.querySelectorAll('.nav-link').forEach(link => {
-            if (link.getAttribute('data-page') === page) {
-                link.classList.add('active-nav');
-            } else {
-                link.classList.remove('active-nav');
-            }
-        });
-        
-        this.currentPage = page;
-        
-        // Load specific content for pages
-        if (page === 'posts') {
-            this.loadAllPosts();
-        } else if (page === 'home') {
-            // Check if user is logged in and load appropriate content
-            const user = window.authManager.getCurrentUser();
+        // Fall back to localStorage (for persistent login)
+        if (!user) {
+            user = localStorage.getItem(this.loggedInUserKey);
             if (user) {
-                this.loadRecentPosts();
+                // Restore session
+                sessionStorage.setItem(this.sessionUserKey, user);
             }
         }
+        
+        return user;
     }
 
-    handleCreatePost(e) {
+    /**
+     * Set logged-in user
+     * Store in both localStorage and sessionStorage
+     * @param {string} username - Username to set as logged in
+     */
+    setLoggedInUser(username) {
+        localStorage.setItem(this.loggedInUserKey, username);
+        sessionStorage.setItem(this.sessionUserKey, username);
+        this.updateUIForLoggedInUser(username);
+    }
+
+    /**
+     * Clear logged-in user
+     * Remove from both localStorage and sessionStorage
+     */
+    clearLoggedInUser() {
+        localStorage.removeItem(this.loggedInUserKey);
+        sessionStorage.removeItem(this.sessionUserKey);
+        this.updateUIForGuest();
+    }
+
+    /**
+     * Update UI for logged-in user
+     * @param {string} username - Username of logged-in user
+     */
+    updateUIForLoggedInUser(username) {
+        // Hide auth buttons
+        const authButtons = document.getElementById('authButtons');
+        if (authButtons) {
+            authButtons.classList.add('hidden');
+        }
+
+        // Show user info
+        const userInfo = document.getElementById('userInfo');
+        if (userInfo) {
+            userInfo.classList.remove('hidden');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            if (usernameDisplay) {
+                usernameDisplay.textContent = username;
+            }
+        }
+
+        // Show user view on home page
+        const homeGuest = document.getElementById('home-guest');
+        const homeUser = document.getElementById('home-user');
+        if (homeGuest) homeGuest.classList.add('hidden');
+        if (homeUser) homeUser.classList.remove('hidden');
+    }
+
+    /**
+     * Update UI for guest (not logged in)
+     */
+    updateUIForGuest() {
+        // Show auth buttons
+        const authButtons = document.getElementById('authButtons');
+        if (authButtons) {
+            authButtons.classList.remove('hidden');
+        }
+
+        // Hide user info
+        const userInfo = document.getElementById('userInfo');
+        if (userInfo) {
+            userInfo.classList.add('hidden');
+        }
+
+        // Show guest view on home page
+        const homeGuest = document.getElementById('home-guest');
+        const homeUser = document.getElementById('home-user');
+        if (homeGuest) homeGuest.classList.remove('hidden');
+        if (homeUser) homeUser.classList.add('hidden');
+    }
+
+    /**
+     * Handle logout
+     * TODO: Replace with AJAX call to DELETE /M00XXXXX/login
+     */
+    handleLogout(e) {
         e.preventDefault();
         
-        // Check if user is logged in
-        const username = window.authManager.getCurrentUser();
-        if (!username) {
-            alert('Please login to create a post.');
-            this.showPage('login');
-            return;
+        // Clear stored user data
+        this.clearLoggedInUser();
+        
+        // Redirect to home page
+        if (window.blogManager) {
+            window.blogManager.showPage('home');
+        }
+    }
+
+    /**
+     * Validate username (no spaces)
+     * @param {string} username - Username to validate
+     * @returns {boolean} True if valid, false otherwise
+     */
+    validateUsername(username) {
+        return /^\S+$/.test(username);
+    }
+
+    /**
+     * Validate email format
+     * @param {string} email - Email to validate
+     * @returns {boolean} True if valid, false otherwise
+     */
+    validateEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    /**
+     * Validate password strength (minimum 6 characters)
+     * @param {string} password - Password to validate
+     * @returns {boolean} True if valid, false otherwise
+     */
+    validatePasswordStrength(password) {
+        return password.length >= 6;
+    }
+
+    /**
+     * Validate date of birth (user must be at least 10 years old)
+     * @param {string} dob - Date of birth in YYYY-MM-DD format
+     * @returns {boolean} True if valid, false otherwise
+     */
+    validateDateOfBirth(dob) {
+        const birthDate = new Date(dob);
+        const today = new Date();
+        
+        if (isNaN(birthDate.getTime()) || birthDate > today) {
+            return false;
         }
         
-        const title = document.getElementById('post-title').value.trim();
-        const description = document.getElementById('post-description').value.trim();
-        const code = document.getElementById('post-code').value.trim();
-        const language = document.getElementById('post-language').value.trim();
-        const messageLabel = document.getElementById('create-messageLabel');
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
         
-        if (!title || !code || !language) {
-            messageLabel.textContent = 'Please fill in all required fields.';
-            messageLabel.style.color = 'red';
-            return;
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
         }
         
-        // Create new post
-        const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
-        const newPost = {
-            id: Date.now(),
-            title,
-            description,
-            code,
-            language,
-            author: username,
-            date: new Date().toISOString()
-        };
-        
-        posts.unshift(newPost); // Add to beginning of array
-        localStorage.setItem(this.postsKey, JSON.stringify(posts));
-        
-        messageLabel.textContent = 'Post created successfully!';
-        messageLabel.style.color = 'green';
-        
-        // Clear form and redirect to home page after a delay
-        setTimeout(() => {
-            document.getElementById('createPostForm').reset();
-            this.showPage('home');
-        }, 1500);
+        return age >= 10;
     }
 
-    loadRecentPosts() {
-        const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
-        const recentPosts = posts.slice(0, 6); // Get first 6 posts
-        
-        this.renderPosts(recentPosts, 'recent-posts');
+    /**
+     * Get all registered users from localStorage
+     * TODO: This will be replaced with backend calls
+     * @returns {Array} Array of user objects
+     */
+    getUsers() {
+        return JSON.parse(localStorage.getItem('users')) || [];
     }
 
-    loadAllPosts() {
-        const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
-        this.renderPosts(posts, 'all-posts');
-    }
-
-    renderPosts(posts, containerId) {
-        const container = document.getElementById(containerId);
-        
-        if (posts.length === 0) {
-            container.innerHTML = '<p class="no-scores-message">No posts available yet.</p>';
-            return;
-        }
-        
-        container.innerHTML = posts.map(post => `
-            <div class="blog-card">
-                <h3 class="blog-title">${post.title}</h3>
-                ${post.description ? `<p>${post.description}</p>` : ''}
-                <div class="blog-code">${this.escapeHtml(post.code)}</div>
-                <p><strong>Language:</strong> ${post.language}</p>
-                <p class="blog-author">By ${post.author} on ${new Date(post.date).toLocaleDateString()}</p>
-            </div>
-        `).join('');
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+    /**
+     * Save users array to localStorage
+     * TODO: This will be replaced with backend calls
+     * @param {Array} users - Array of user objects to save
+     */
+    saveUsers(users) {
+        localStorage.setItem('users', JSON.stringify(users));
     }
 }
 
-// Initialize the blog manager when DOM is loaded
+// Initialise authentication manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    window.blogManager = new BlogManager();
+    window.authManager = new AuthManager();
 });

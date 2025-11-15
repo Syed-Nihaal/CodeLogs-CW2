@@ -15,14 +15,14 @@
             <img src="assets/img/logo.png" alt="Code|_ogs" class="header-logo">
             <!-- Navigation links -->
             <div class="nav-links">
-                <a href="#" class="nav-link active-nav" data-page="home">
+                <a href="../public/index.html" class="nav-link active-nav" data-page="home">
                     <img src="assets/img/home.png" alt="Home" class="nav-icons">
                 </a>
-                <a href="#" class="nav-link" data-page="posts">
-                    <img src="assets/img/posts.png" alt="Posts" class="nav-icons">
+                <a href="#" class="nav-link" data-page="postboard">
+                    <img src="assets/img/postboard.png" alt="Postboard" class="nav-icons">
                 </a>
-                <a href="#" class="nav-link" data-page="create">
-                    <img src="assets/img/create_post.png" alt="Create Post" class="nav-icons">
+                <a href="#" class="nav-link" data-page="createpost">
+                    <img src="assets/img/post.png" alt="Create Post" class="nav-icons">
                 </a>
                 <a href="https://github.com">
                     <img src="assets/img/github.png" alt="GitHub" class="nav-icons">
@@ -32,10 +32,6 @@
                     <a href="#" id="logoutButton" class="logout-nav-button">
                         <img src="assets/img/logout.png" alt="Logout" class="nav-icons">
                     </a>
-                </div>
-                <div id="authButtons" class="user-info">
-                    <a href="#" class="button login-button" data-page="login">Login</a>
-                    <a href="#" class="button register-button" data-page="register">Register</a>
                 </div>
             </div>
         </nav>
@@ -55,8 +51,8 @@
                     <div class="index-buttons">
                         <h1>Welcome to Code|_ogs</h1>
                         <p>Share your code snippets, learn from others, and connect with developers.</p>
-                        <a href="#" class="button login-button" data-page="login">Login</a>
-                        <a href="#" class="button register-button" data-page="register">Register</a>
+                        <a href="assets/javascript/login.js" class="button login-button" data-page="login">Login</a>
+                        <a href="assets/javascript/register.js" class="button register-button" data-page="register">Register</a>
                     </div>
                 </div>
             </div>
@@ -120,8 +116,39 @@
                     <label id="register-messageLabel" style="display:block; margin-top:10px;"></label>
                     <br>
                     <!-- Link to login page -->
-                    <p class="alt-link">
+                    <p class="alt-link-a">
                         Please login if you have an account. <a href="#" data-page="login">Login here</a>.
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recover Page -->
+        <div id="recover-page" class="page-content hidden">
+            <div class="form-container">
+                <h2 style="text-align: center;">Account Recovery</h2>
+                <br>
+                <p style="text-align: center; margin-bottom: 1rem;">
+                    Enter your email and either your username (to recover password) or password (to recover username).
+                </p>
+                <form id="recoverForm">
+                    <!-- Input fields for recovery -->
+                    <label for="recover-email">Email</label>
+                    <input type="email" id="recover-email" name="email" required>
+                    
+                    <label for="recover-username">Username (optional)</label>
+                    <input type="text" id="recover-username" name="username" placeholder="To recover password">
+                    
+                    <label for="recover-password">Password (optional)</label>
+                    <input type="password" id="recover-password" name="password" placeholder="To recover username">
+                    
+                    <button type="submit" class="button login-button">Recover Account</button>
+                    <!-- Message label for displaying recovery status -->
+                    <label id="recover-messageLabel" style="display:block; margin-top:10px;"></label>
+                    <br>
+                    <!-- Link back to login page -->
+                    <p class="alt-link-a">
+                        Remember your details? <a href="#" data-page="login">Login here</a>.
                     </p>
                 </form>
             </div>
@@ -161,7 +188,11 @@
         </div>
     </div>
 
+    <!-- JavaScript files - load in correct order -->
     <script src="assets/javascript/auth.js"></script>
+    <script src="assets/javascript/login.js"></script>
+    <script src="assets/javascript/register.js"></script>
+    <script src="assets/javascript/recover.js"></script>
     <script src="assets/javascript/blog.js"></script>
 </body>
 </html>

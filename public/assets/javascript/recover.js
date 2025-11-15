@@ -1,49 +1,66 @@
 // Account Recovery Manager class to handle account recovery functionality
 class RecoveryManager {
-    // Constructor to initialise the recovery manager
     constructor() {
-        this.recoverForm = document.getElementById('recoverForm'); // Get recovery form element
-        this.messageLabel = document.getElementById('messageLabel'); // Get message label element
-        this.usersKey = 'users'; // LocalStorage key for users array
-        this.redirectDelay = 2000; // Delay before redirecting (in milliseconds)
+        this.recoverForm = document.getElementById('recoverForm');
+        this.messageLabel = document.getElementById('recover-messageLabel');
+        this.redirectDelay = 2000;
         
-        this.init(); // Initialise the recovery manager
+        this.init();
     }
 
-    // Initialise event listeners
+    /**
+     * Initialise recovery manager
+     * Set up event listeners
+     */
     init() {
-        // Add submit event listener to recovery form
-        this.recoverForm.addEventListener('submit', (e) => this.handleRecovery(e));
+        if (this.recoverForm) {
+            this.recoverForm.addEventListener('submit', (e) => this.handleRecovery(e));
+        }
     }
 
-    // Get all registered users from localStorage
-    getUsers() {
-        return JSON.parse(localStorage.getItem(this.usersKey)) || []; // Return users array or empty array
-    }
-
-    // Find user by email address
-    findUserByEmail(email) {
-        const users = this.getUsers(); // Get all users
-        return users.find(u => u.email === email); // Find user with matching email
-    }
-
-    // Display message to user
+    /**
+     * Display message to user
+     * @param {string} message - Message to display
+     * @param {boolean} isSuccess - Whether message is success or error
+     */
     displayMessage(message, isSuccess = false) {
-        this.messageLabel.textContent = message; // Set message text
-        this.messageLabel.style.color = isSuccess ? 'green' : 'red'; // Set colour based on success/failure
+        if (this.messageLabel) {
+            this.messageLabel.textContent = message;
+            this.messageLabel.style.color = isSuccess ? 'green' : 'red';
+        }
     }
 
-    // Clear any existing messages
+    /**
+     * Clear any existing messages
+     */
     clearMessage() {
-        this.messageLabel.textContent = ''; // Clear message text
+        if (this.messageLabel) {
+            this.messageLabel.textContent = '';
+        }
     }
 
-    // Handle password recovery (when username is provided)
+    /**
+     * Find user by email address
+     * TODO: Replace with AJAX call to backend
+     * @param {string} email - Email address to search
+     * @returns {Object|null} User object if found, null otherwise
+     */
+    findUserByEmail(email) {
+        const users = window.authManager ? window.authManager.getUsers() : [];
+        return users.find(u => u.email === email);
+    }
+
+    /**
+     * Handle password recovery (when username is provided)
+     * @param {Object} user - User object
+     * @param {string} username - Username provided by user
+     * @returns {boolean} True if successful, false otherwise
+     */
     handlePasswordRecovery(user, username) {
         // Verify username matches email
         if (user.username === username) {
             this.displayMessage(`Password recovery successful! Your password is: ${user.password}`, true);
-            this.redirectToLogin(); // Redirect to login page after delay
+            this.redirectToLogin();
             return true;
         } else {
             this.displayMessage('Username does not match the email address.');
@@ -51,12 +68,17 @@ class RecoveryManager {
         }
     }
 
-    // Handle username recovery (when password is provided)
+    /**
+     * Handle username recovery (when password is provided)
+     * @param {Object} user - User object
+     * @param {string} password - Password provided by user
+     * @returns {boolean} True if successful, false otherwise
+     */
     handleUsernameRecovery(user, password) {
         // Verify password matches email
         if (user.password === password) {
             this.displayMessage(`Username recovery successful! Your username is: ${user.username}`, true);
-            this.redirectToLogin(); // Redirect to login page after delay
+            this.redirectToLogin();
             return true;
         } else {
             this.displayMessage('Password does not match the email address.');
@@ -64,25 +86,45 @@ class RecoveryManager {
         }
     }
 
-    // Redirect to login page after delay
+    /**
+     * Redirect to login page after delay
+     */
     redirectToLogin() {
         setTimeout(() => {
-            window.location.href = 'login.html'; // Redirect to login page
+            if (window.blogManager) {
+                window.blogManager.showPage('login');
+            }
         }, this.redirectDelay);
     }
 
-    // Handle recovery form submission
+    /**
+     * Handle recovery form submission
+     * @param {Event} e - Form submit event
+     */
     handleRecovery(e) {
-        e.preventDefault(); // Prevent default form submission behaviour
+        e.preventDefault();
 
         // Get form input values and trim whitespace
-        const email = document.getElementById('email').value.trim();
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
+        const email = document.getElementById('recover-email').value.trim();
+        const username = document.getElementById('recover-username').value.trim();
+        const password = document.getElementById('recover-password').value.trim();
 
-        this.clearMessage(); // Clear any previous messages
+        this.clearMessage();
+
+        // Validate email is provided
+        if (!email) {
+            this.displayMessage('Please enter your email address.');
+            return;
+        }
+
+        // Validate email format
+        if (window.authManager && !window.authManager.validateEmail(email)) {
+            this.displayMessage('Please enter a valid email address.');
+            return;
+        }
 
         // Find user by email
+        // TODO: Replace with AJAX call to backend
         const user = this.findUserByEmail(email);
 
         // Case 1: Email not found
@@ -110,5 +152,5 @@ class RecoveryManager {
 
 // Create instance of RecoveryManager when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    new RecoveryManager(); // Create new RecoveryManager instance
+    window.recoveryManager = new RecoveryManager();
 });

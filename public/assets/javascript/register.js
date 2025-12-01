@@ -8,21 +8,14 @@ class RegistrationManager {
         this.init();
     }
 
-    /**
-     * Initialise registration manager
-     * Set up event listeners
-     */
+    // Initialising registration manager and set up event listeners
     init() {
         if (this.registerForm) {
             this.registerForm.addEventListener('submit', (e) => this.handleRegistration(e));
         }
     }
 
-    /**
-     * Display message to user
-     * @param {string} message - Message to display
-     * @param {boolean} isSuccess - Whether message is success or error
-     */
+    // Displaying message to user
     displayMessage(message, isSuccess = false) {
         if (this.messageLabel) {
             this.messageLabel.textContent = message;
@@ -30,45 +23,25 @@ class RegistrationManager {
         }
     }
 
-    /**
-     * Clear any existing messages
-     */
+    // Clear any existing messages
     clearMessage() {
         if (this.messageLabel) {
             this.messageLabel.textContent = '';
         }
     }
 
-    /**
-     * Validate password match
-     * @param {string} password - Password
-     * @param {string} confirmPassword - Confirm password
-     * @returns {boolean} True if passwords match
-     */
+    // Validate password match
     validatePasswordMatch(password, confirmPassword) {
         return password === confirmPassword;
     }
 
-    /**
-     * Check if username or email already exists
-     * TODO: This will be replaced with backend validation
-     * @param {string} username - Username to check
-     * @param {string} email - Email to check
-     * @returns {Object|null} Existing user if found, null otherwise
-     */
+    // Check if username or email already exists
     checkUserExists(username, email) {
         const users = window.authManager ? window.authManager.getUsers() : [];
         return users.find(user => user.username === username || user.email === email);
     }
 
-    /**
-     * Create new user object
-     * @param {string} username - Username
-     * @param {string} email - Email address
-     * @param {string} dob - Date of birth
-     * @param {string} password - Password
-     * @returns {Object} User object
-     */
+    // Create new user object
     createUser(username, email, dob, password) {
         return {
             username: username,
@@ -78,9 +51,7 @@ class RegistrationManager {
         };
     }
 
-    /**
-     * Handle successful registration
-     */
+    // Handle successful registration
     handleSuccessfulRegistration() {
         this.displayMessage('Registration successful! Redirecting to login...', true);
         
@@ -92,10 +63,7 @@ class RegistrationManager {
         }, this.redirectDelay);
     }
 
-    /**
-     * Handle registration form submission
-     * @param {Event} e - Form submit event
-     */
+    // Handle registration form submission
     handleRegistration(e) {
         e.preventDefault();
         

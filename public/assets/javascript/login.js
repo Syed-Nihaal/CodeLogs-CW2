@@ -8,21 +8,14 @@ class LoginManager {
         this.init();
     }
 
-    /**
-     * Initialise login manager
-     * Set up event listeners
-     */
+    // Initialise login manager and set up event listeners
     init() {
         if (this.loginForm) {
             this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
         }
     }
 
-    /**
-     * Display message to user
-     * @param {string} message - Message to display
-     * @param {boolean} isSuccess - Whether message is success or error
-     */
+    // Displaying message to user
     displayMessage(message, isSuccess = false) {
         if (this.messageLabel) {
             this.messageLabel.textContent = message;
@@ -30,31 +23,20 @@ class LoginManager {
         }
     }
 
-    /**
-     * Clear any existing messages
-     */
+    // Clearing any existing messages
     clearMessage() {
         if (this.messageLabel) {
             this.messageLabel.textContent = '';
         }
     }
 
-    /**
-     * Validate user credentials
-     * TODO: Replace with AJAX call to POST /M00XXXXX/login
-     * @param {string} username - Username to validate
-     * @param {string} password - Password to validate
-     * @returns {Object|null} User object if valid, null otherwise
-     */
+    // Validating user credential
     validateCredentials(username, password) {
         const users = window.authManager ? window.authManager.getUsers() : [];
         return users.find(u => u.username === username && u.password === password);
     }
 
-    /**
-     * Handle successful login
-     * @param {string} username - Username of logged-in user
-     */
+    // Handling successful login
     handleSuccessfulLogin(username) {
         this.displayMessage('Login successful! Redirecting...', true);
         
@@ -72,17 +54,12 @@ class LoginManager {
         }, this.redirectDelay);
     }
 
-    /**
-     * Handle failed login
-     */
+    // Handling failed login
     handleFailedLogin() {
         this.displayMessage('Invalid username or password. Please try again.');
     }
 
-    /**
-     * Handle login form submission
-     * @param {Event} e - Form submit event
-     */
+    // Handle login form submission
     handleLogin(e) {
         e.preventDefault();
         
@@ -99,7 +76,6 @@ class LoginManager {
         }
         
         // Validate credentials
-        // TODO: Replace with AJAX call to POST /M00XXXXX/login
         const user = this.validateCredentials(username, password);
         
         if (user) {

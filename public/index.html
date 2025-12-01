@@ -1,198 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code|_ogs</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>CodeLogs</title>
+        <link rel="stylesheet" href="assets/css/style.css">
+    </head>
 
-<body class="index-page">
-    <!-- Header section -->
-    <div class="header-container">
-        <nav>
-            <!-- Website logo -->
-            <img src="assets/img/logo.png" alt="Code|_ogs" class="header-logo">
-            <!-- Navigation links -->
-            <div class="nav-links">
-                <a href="../public/index.html" class="nav-link active-nav" data-page="home">
-                    <img src="assets/img/home.png" alt="Home" class="nav-icons">
-                </a>
-                <a href="#" class="nav-link" data-page="postboard">
-                    <img src="assets/img/postboard.png" alt="Postboard" class="nav-icons">
-                </a>
-                <a href="#" class="nav-link" data-page="createpost">
-                    <img src="assets/img/post.png" alt="Create Post" class="nav-icons">
-                </a>
-                <a href="https://github.com">
-                    <img src="assets/img/github.png" alt="GitHub" class="nav-icons">
-                </a>
-                <div id="userInfo" class="user-info hidden">
-                    <span id="usernameDisplay"></span>
-                    <a href="#" id="logoutButton" class="logout-nav-button">
-                        <img src="assets/img/logout.png" alt="Logout" class="nav-icons">
+    <body class="index-page">
+        <!-- Header section -->
+        <div class="header-container">
+            <nav>
+                <!-- Website logo -->
+                <img src="assets/img/logo.png" alt="CodeLogs" class="header-logo">
+                <!-- Navigation links -->
+                <div class="nav-links">
+                    <a href="../public/index.html" class="nav-link" data-page="home">
+                        <img src="assets/img/home.png" alt="Home" class="nav-icons">
                     </a>
+                    <a href="#" class="nav-link" data-page="posts">
+                        <img src="assets/img/postboard.png" alt="Postboard" class="nav-icons">
+                    </a>
+                    <a href="#" class="nav-link" data-page="create">
+                        <img src="assets/img/post.png" alt="Create Post" class="nav-icons">
+                    </a>
+                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="external-link">
+                        <img src="assets/img/github.png" alt="GitHub" class="nav-icons">
+                    </a>
+                    <div id="userInfo" class="user-info hidden">
+                        <span id="usernameDisplay"></span>
+                        <a href="#" id="logoutButton" class="logout-nav-button">
+                            <img src="assets/img/logout.png" alt="Logout" class="nav-icons">
+                        </a>
+                    </div>
                 </div>
-            </div>
-        </nav>
-    </div>
+            </nav>
+        </div>
 
-    <!-- Divider line -->
-    <hr>
+        <!-- Divider line -->
+        <hr>
 
-    <!-- Main content area - dynamically updated -->
-    <div class="content-area">
-        <!-- Home Page -->
-        <div id="home-page" class="page-content">
-            <!-- Guest view (shown when not logged in) -->
-            <div id="home-guest" class="hidden">
-                <div class="index-content">
-                    <!-- Welcome section -->
-                    <div class="index-buttons">
-                        <h1>Welcome to Code|_ogs</h1>
-                        <p>Share your code snippets, learn from others, and connect with developers.</p>
-                        <a href="assets/javascript/login.js" class="button login-button" data-page="login">Login</a>
-                        <a href="assets/javascript/register.js" class="button register-button" data-page="register">Register</a>
+        <!-- Main content area - dynamically updated -->
+        <div class="content-area">
+            <!-- Home Page -->
+            <div id="home-page" class="page-content">
+                <!-- Guest view (shown when not logged in) -->
+                <div id="home-guest" class="hidden">
+                    <div class="index-content">
+                        <!-- Welcome section -->
+                        <div class="index-buttons">
+                            <h1>Welcome to CodeLogs</h1>
+                            <p>Share your code snippets, learn from others, and connect with developers.</p>
+                            <a href="#" class="button login-button" data-page="login">Login</a>
+                            <a href="#" class="button register-button" data-page="register">Register</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- User view (shown when logged in) -->
+                <div id="home-user" class="hidden">
+                    <h2 style="text-align: center;">Recent Code Posts</h2>
+                    <div class="blog-posts" id="recent-posts">
+                        <!-- Recent posts will be loaded here -->
                     </div>
                 </div>
             </div>
-            
-            <!-- User view (shown when logged in) -->
-            <div id="home-user" class="hidden">
-                <h2 style="text-align: center;">Recent Code Posts</h2>
-                <div class="blog-posts" id="recent-posts">
-                    <!-- Recent posts will be loaded here -->
+
+            <!-- Login Page -->
+            <div id="login-page" class="page-content hidden">
+                <div class="form-container">
+                    <h2 style="text-align: center;">Login</h2>
+                    <br>
+                    <form id="loginForm">
+                        <!-- Input fields for username and password -->
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" name="username" required>
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" name="password" required>
+                        <button type="submit" class="button login-button">Login</button>
+                        <!-- Message label for displaying login status -->
+                        <label id="login-messageLabel" style="display:block; margin-top:10px;"></label>
+                        <br>
+                        <!-- Link to reset password -->
+                        <p class="alt-link-a">
+                            Forgot your username or password? <a href="#" data-page="recover">Recover here</a>.
+                        </p>
+                        <br>
+                        <!-- Link to register page -->
+                        <p class="alt-link-b">
+                            Please register if you don't have an account. <a href="#" data-page="register">Register here</a>.
+                        </p>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Register Page -->
+            <div id="register-page" class="page-content hidden">
+                <div class="form-container">
+                    <h2 style="text-align: center;">Register</h2>
+                    <br>
+                    <form id="registerForm">
+                        <!-- Input fields for username, email, date of birth, password, and confirm password -->
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" name="username" required>
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" name="email" required>
+                        <label for="register-dob">Date of Birth</label>
+                        <input type="date" id="register-dob" name="dob" required>
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" name="password" required>
+                        <label for="register-confirm-password">Confirm Password</label>
+                        <input type="password" id="register-confirm-password" name="confirm-password" required>
+                        <button type="submit" class="button register-button">Register</button>
+                        <!-- Message label for displaying registration status -->
+                        <label id="register-messageLabel" style="display:block; margin-top:10px;"></label>
+                        <br>
+                        <!-- Link to login page -->
+                        <p class="alt-link-a">
+                            Please login if you have an account. <a href="#" data-page="login">Login here</a>.
+                        </p>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recover Page -->
+            <div id="recover-page" class="page-content hidden">
+                <div class="form-container">
+                    <h2 style="text-align: center;">Account Recovery</h2>
+                    <br>
+                    <p style="text-align: center; margin-bottom: 1rem;">
+                        Enter your email and either your username (to recover password) or password (to recover username).
+                    </p>
+                    <form id="recoverForm">
+                        <!-- Input fields for recovery -->
+                        <label for="recover-email">Email</label>
+                        <input type="email" id="recover-email" name="email" required>
+                        
+                        <label for="recover-username">Username (optional)</label>
+                        <input type="text" id="recover-username" name="username" placeholder="To recover password">
+                        
+                        <label for="recover-password">Password (optional)</label>
+                        <input type="password" id="recover-password" name="password" placeholder="To recover username">
+                        
+                        <button type="submit" class="button login-button">Recover Account</button>
+                        <!-- Message label for displaying recovery status -->
+                        <label id="recover-messageLabel" style="display:block; margin-top:10px;"></label>
+                        <br>
+                        <!-- Link back to login page -->
+                        <p class="alt-link-a">
+                            Remember your details? <a href="#" data-page="login">Login here</a>.
+                        </p>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Postboard Page -->
+            <div id="posts-board" class="page-content hidden">
+                <h2 style="text-align: center;">All Code Posts</h2>
+                <div class="blog-posts" id="all-posts">
+                    <!-- All posts will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Create Post Page -->
+            <div id="posts-page" class="page-content hidden">
+                <div class="create-post-form">
+                    <h2 style="text-align: center;">Create New Post</h2>
+                    <br>
+                    <form id="createPostForm">
+                        <label for="post-title">Title</label>
+                        <input type="text" id="post-title" name="title" required>
+                        
+                        <label for="post-description">Description</label>
+                        <textarea id="post-description" name="description" placeholder="Describe your code snippet..."></textarea>
+                        
+                        <label for="post-code">Code</label>
+                        <textarea id="post-code" name="code" placeholder="Paste your code here..." required></textarea>
+                        
+                        <label for="post-language">Programming Language</label>
+                        <input type="text" id="post-language" name="language" placeholder="e.g., JavaScript, Python, etc." required>
+                        
+                        <button type="submit" class="button register-button">Publish Post</button>
+                        <!-- Message label for displaying post status -->
+                        <label id="create-messageLabel" style="display:block; margin-top:10px;"></label>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Login Page -->
-        <div id="login-page" class="page-content hidden">
-            <div class="form-container">
-                <h2 style="text-align: center;">Login</h2>
-                <br>
-                <form id="loginForm">
-                    <!-- Input fields for username and password -->
-                    <label for="login-username">Username</label>
-                    <input type="text" id="login-username" name="username" required>
-                    <label for="login-password">Password</label>
-                    <input type="password" id="login-password" name="password" required>
-                    <button type="submit" class="button login-button">Login</button>
-                    <!-- Message label for displaying login status -->
-                    <label id="login-messageLabel" style="display:block; margin-top:10px;"></label>
-                    <br>
-                    <!-- Link to reset password -->
-                    <p class="alt-link-a">
-                        Forgot your username or password? <a href="#" data-page="recover">Recover here</a>.
-                    </p>
-                    <br>
-                    <!-- Link to register page -->
-                    <p class="alt-link-b">
-                        Please register if you don't have an account. <a href="#" data-page="register">Register here</a>.
-                    </p>
-                </form>
-            </div>
-        </div>
-
-        <!-- Register Page -->
-        <div id="register-page" class="page-content hidden">
-            <div class="form-container">
-                <h2 style="text-align: center;">Register</h2>
-                <br>
-                <form id="registerForm">
-                    <!-- Input fields for username, email, date of birth, password, and confirm password -->
-                    <label for="register-username">Username</label>
-                    <input type="text" id="register-username" name="username" required>
-                    <label for="register-email">Email</label>
-                    <input type="email" id="register-email" name="email" required>
-                    <label for="register-dob">Date of Birth</label>
-                    <input type="date" id="register-dob" name="dob" required>
-                    <label for="register-password">Password</label>
-                    <input type="password" id="register-password" name="password" required>
-                    <label for="register-confirm-password">Confirm Password</label>
-                    <input type="password" id="register-confirm-password" name="confirm-password" required>
-                    <button type="submit" class="button register-button">Register</button>
-                    <!-- Message label for displaying registration status -->
-                    <label id="register-messageLabel" style="display:block; margin-top:10px;"></label>
-                    <br>
-                    <!-- Link to login page -->
-                    <p class="alt-link-a">
-                        Please login if you have an account. <a href="#" data-page="login">Login here</a>.
-                    </p>
-                </form>
-            </div>
-        </div>
-
-        <!-- Recover Page -->
-        <div id="recover-page" class="page-content hidden">
-            <div class="form-container">
-                <h2 style="text-align: center;">Account Recovery</h2>
-                <br>
-                <p style="text-align: center; margin-bottom: 1rem;">
-                    Enter your email and either your username (to recover password) or password (to recover username).
-                </p>
-                <form id="recoverForm">
-                    <!-- Input fields for recovery -->
-                    <label for="recover-email">Email</label>
-                    <input type="email" id="recover-email" name="email" required>
-                    
-                    <label for="recover-username">Username (optional)</label>
-                    <input type="text" id="recover-username" name="username" placeholder="To recover password">
-                    
-                    <label for="recover-password">Password (optional)</label>
-                    <input type="password" id="recover-password" name="password" placeholder="To recover username">
-                    
-                    <button type="submit" class="button login-button">Recover Account</button>
-                    <!-- Message label for displaying recovery status -->
-                    <label id="recover-messageLabel" style="display:block; margin-top:10px;"></label>
-                    <br>
-                    <!-- Link back to login page -->
-                    <p class="alt-link-a">
-                        Remember your details? <a href="#" data-page="login">Login here</a>.
-                    </p>
-                </form>
-            </div>
-        </div>
-
-        <!-- Posts Page -->
-        <div id="posts-page" class="page-content hidden">
-            <h2 style="text-align: center;">All Code Posts</h2>
-            <div class="blog-posts" id="all-posts">
-                <!-- All posts will be loaded here -->
-            </div>
-        </div>
-
-        <!-- Create Post Page -->
-        <div id="create-page" class="page-content hidden">
-            <div class="create-post-form">
-                <h2 style="text-align: center;">Create New Post</h2>
-                <br>
-                <form id="createPostForm">
-                    <label for="post-title">Title</label>
-                    <input type="text" id="post-title" name="title" required>
-                    
-                    <label for="post-description">Description</label>
-                    <textarea id="post-description" name="description" placeholder="Describe your code snippet..."></textarea>
-                    
-                    <label for="post-code">Code</label>
-                    <textarea id="post-code" name="code" placeholder="Paste your code here..." required></textarea>
-                    
-                    <label for="post-language">Programming Language</label>
-                    <input type="text" id="post-language" name="language" placeholder="e.g., JavaScript, Python, etc." required>
-                    
-                    <button type="submit" class="button register-button">Publish Post</button>
-                    <!-- Message label for displaying post status -->
-                    <label id="create-messageLabel" style="display:block; margin-top:10px;"></label>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- JavaScript files - load in correct order -->
-    <script src="assets/javascript/auth.js"></script>
-    <script src="assets/javascript/login.js"></script>
-    <script src="assets/javascript/register.js"></script>
-    <script src="assets/javascript/recover.js"></script>
-    <script src="assets/javascript/blog.js"></script>
-</body>
+        <!-- JavaScript files - load in correct order -->
+        <script src="assets/javascript/auth.js"></script>
+        <script src="assets/javascript/login.js"></script>
+        <script src="assets/javascript/register.js"></script>
+        <script src="assets/javascript/recover.js"></script>
+        <script src="assets/javascript/blog.js"></script>
+    </body>
 </html>

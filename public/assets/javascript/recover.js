@@ -8,21 +8,14 @@ class RecoveryManager {
         this.init();
     }
 
-    /**
-     * Initialise recovery manager
-     * Set up event listeners
-     */
+    // Initialise account recovery manager and set up event listeners
     init() {
         if (this.recoverForm) {
             this.recoverForm.addEventListener('submit', (e) => this.handleRecovery(e));
         }
     }
 
-    /**
-     * Display message to user
-     * @param {string} message - Message to display
-     * @param {boolean} isSuccess - Whether message is success or error
-     */
+    // Displaying message to user
     displayMessage(message, isSuccess = false) {
         if (this.messageLabel) {
             this.messageLabel.textContent = message;
@@ -30,32 +23,20 @@ class RecoveryManager {
         }
     }
 
-    /**
-     * Clear any existing messages
-     */
+    // Clearing any existing messages
     clearMessage() {
         if (this.messageLabel) {
             this.messageLabel.textContent = '';
         }
     }
 
-    /**
-     * Find user by email address
-     * TODO: Replace with AJAX call to backend
-     * @param {string} email - Email address to search
-     * @returns {Object|null} User object if found, null otherwise
-     */
+    // Finding user by email address
     findUserByEmail(email) {
         const users = window.authManager ? window.authManager.getUsers() : [];
         return users.find(u => u.email === email);
     }
 
-    /**
-     * Handle password recovery (when username is provided)
-     * @param {Object} user - User object
-     * @param {string} username - Username provided by user
-     * @returns {boolean} True if successful, false otherwise
-     */
+    // Handle password recovery (when username is provided)
     handlePasswordRecovery(user, username) {
         // Verify username matches email
         if (user.username === username) {
@@ -68,12 +49,7 @@ class RecoveryManager {
         }
     }
 
-    /**
-     * Handle username recovery (when password is provided)
-     * @param {Object} user - User object
-     * @param {string} password - Password provided by user
-     * @returns {boolean} True if successful, false otherwise
-     */
+    // Handle username recovery (when password is provided)
     handleUsernameRecovery(user, password) {
         // Verify password matches email
         if (user.password === password) {
@@ -86,9 +62,7 @@ class RecoveryManager {
         }
     }
 
-    /**
-     * Redirect to login page after delay
-     */
+    // Redirecting to login page after delay
     redirectToLogin() {
         setTimeout(() => {
             if (window.blogManager) {
@@ -97,10 +71,7 @@ class RecoveryManager {
         }, this.redirectDelay);
     }
 
-    /**
-     * Handle recovery form submission
-     * @param {Event} e - Form submit event
-     */
+    // Handling recovery form submission
     handleRecovery(e) {
         e.preventDefault();
 
@@ -124,7 +95,6 @@ class RecoveryManager {
         }
 
         // Find user by email
-        // TODO: Replace with AJAX call to backend
         const user = this.findUserByEmail(email);
 
         // Case 1: Email not found

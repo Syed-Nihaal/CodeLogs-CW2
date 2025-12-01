@@ -27,15 +27,21 @@ class AuthManager {
             logoutButton.addEventListener('click', (e) => this.handleLogout(e));
         }
 
-        // Navigation link handlers for auth buttons and links
-        document.querySelectorAll('#authButtons a, .alt-link a, .alt-link-a a, .alt-link-b a').forEach(link => {
-            link.addEventListener('click', (e) => {
-                const page = e.currentTarget.getAttribute('data-page');
+        // Use event delegation on document body for all navigation links
+        // This handles links that may be hidden/shown dynamically
+        document.body.addEventListener('click', (e) => {
+            // Check if clicked element or its parent has data-page attribute
+            const target = e.target.closest('[data-page]');
+            if (target) {
+                const page = target.getAttribute('data-page');
                 if (page && window.blogManager) {
                     e.preventDefault();
                     window.blogManager.showPage(page);
                 }
-            });
+            }
+            
+            // Don't prevent default for external links (those without data-page)
+            // This allows links like GitHub to work normally
         });
     }
 

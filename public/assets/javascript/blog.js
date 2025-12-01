@@ -7,10 +7,7 @@ class BlogManager {
         this.init();
     }
 
-    /**
-     * Initialise blog manager
-     * Set up event listeners and load initial content
-     */
+    //Initialise blog manager and set up event listeners and load initial content
     init() {
         this.setupEventListeners();
         this.showPage('home');
@@ -22,12 +19,10 @@ class BlogManager {
         }
     }
 
-    /**
-     * Set up all blog-related event listeners
-     */
+    // Setting up event listeners
     setupEventListeners() {
-        // Navigation links
-        document.querySelectorAll('.nav-link').forEach(link => {
+        // Navigation links - only handle links with .nav-link class that have data-page
+        document.querySelectorAll('.nav-link[data-page]').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const page = e.currentTarget.getAttribute('data-page');
@@ -35,30 +30,27 @@ class BlogManager {
             });
         });
 
-        // Create post form
+        // Creating post form
         const createPostForm = document.getElementById('createPostForm');
         if (createPostForm) {
             createPostForm.addEventListener('submit', (e) => this.handleCreatePost(e));
         }
     }
 
-    /**
-     * Show specific page and hide others
-     * @param {string} page - Page identifier (home, login, register, posts, create)
-     */
+    // Showing selected page and hiding other pages
     showPage(page) {
         // Hide all pages
         document.querySelectorAll('.page-content').forEach(el => {
             el.classList.add('hidden');
         });
         
-        // Show selected page
+        // Showing selected page
         const selectedPage = document.getElementById(`${page}-page`);
         if (selectedPage) {
             selectedPage.classList.remove('hidden');
         }
         
-        // Update navigation active state
+        // Updating navigation active state
         document.querySelectorAll('.nav-link').forEach(link => {
             if (link.getAttribute('data-page') === page) {
                 link.classList.add('active-nav');
@@ -69,11 +61,11 @@ class BlogManager {
         
         this.currentPage = page;
         
-        // Load specific content for pages
+        // Loading specific content for pages
         if (page === 'posts') {
             this.loadAllPosts();
         } else if (page === 'home') {
-            // Check if user is logged in and load appropriate content
+            // Checking if user is logged in and load appropriate content
             const user = window.authManager ? window.authManager.getCurrentUser() : null;
             if (user) {
                 this.loadRecentPosts();
@@ -81,15 +73,11 @@ class BlogManager {
         }
     }
 
-    /**
-     * Handle create post form submission
-     * NOTE: This currently uses localStorage for demo purposes
-     * TODO: Replace with AJAX call to backend web service
-     */
+    // Handling create a post form submission
     handleCreatePost(e) {
         e.preventDefault();
-        
-        // Check if user is logged in
+
+        // Checking if user is logged in
         const username = window.authManager ? window.authManager.getCurrentUser() : null;
         if (!username) {
             const messageLabel = document.getElementById('create-messageLabel');
@@ -102,24 +90,23 @@ class BlogManager {
             return;
         }
         
-        // Get form values
+        // Getting form values
         const title = document.getElementById('post-title').value.trim();
         const description = document.getElementById('post-description').value.trim();
         const code = document.getElementById('post-code').value.trim();
         const language = document.getElementById('post-language').value.trim();
         const messageLabel = document.getElementById('create-messageLabel');
         
-        // Clear previous messages
+        // Clearing previous messages
         messageLabel.textContent = '';
         
-        // Validation
+        // Validating form
         if (!title || !code || !language) {
             messageLabel.textContent = 'Please fill in all required fields.';
             messageLabel.style.color = 'red';
             return;
         }
         
-        // TODO: Replace this with AJAX call to POST /M00XXXXX/contents
         // Create new post
         const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
         const newPost = {
@@ -146,10 +133,7 @@ class BlogManager {
         }, 1500);
     }
 
-    /**
-     * Load recent posts (first 6 posts)
-     * TODO: Replace with AJAX call to GET /M00XXXXX/feed
-     */
+    // Load recent posts (first 6 posts)
     loadRecentPosts() {
         const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
         const recentPosts = posts.slice(0, 6); // Get first 6 posts
@@ -157,20 +141,13 @@ class BlogManager {
         this.renderPosts(recentPosts, 'recent-posts');
     }
 
-    /**
-     * Load all posts
-     * TODO: Replace with AJAX call to GET /M00XXXXX/contents
-     */
+    // Load all posts
     loadAllPosts() {
         const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
         this.renderPosts(posts, 'all-posts');
     }
 
-    /**
-     * Render posts to specified container
-     * @param {Array} posts - Array of post objects
-     * @param {string} containerId - ID of container element
-     */
+    // Render posts to specified container
     renderPosts(posts, containerId) {
         const container = document.getElementById(containerId);
         
@@ -192,17 +169,6 @@ class BlogManager {
                 <p class="blog-author">By ${this.escapeHtml(post.author)} on ${new Date(post.date).toLocaleDateString()}</p>
             </div>
         `).join('');
-    }
-
-    /**
-     * Escape HTML to prevent XSS attacks
-     * @param {string} text - Text to escape
-     * @returns {string} Escaped HTML
-     */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 }
 

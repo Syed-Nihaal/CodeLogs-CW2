@@ -2,7 +2,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import expressSession from 'express-session';
-import { connectDB, getDB } from './database/db.js';
+import { connectDB, getDB } from './assets/javascript/db.js';
 import { ObjectId } from 'mongodb';
 
 // Initialising Express application
@@ -517,6 +517,73 @@ app.get(`/${STUDENT_ID}/feed`, async (req, res) => {
         
     } catch (error) {
         console.error('Feed error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error.'
+        });
+    }
+});
+
+app.get(`/${STUDENT_ID}/users/:username/stats`, async (req, res) => {
+    try {
+        const username = req.params.username;
+        
+        res.json({
+            success: true,
+            stats: {
+                posts: 0,
+                likes: 0,
+                followers: 0,
+                following: 0
+            }
+        });
+        
+    } catch (error) {
+        console.error('Stats error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error.'
+        });
+    }
+});
+
+// 5. Create GET endpoint to retrieve followers list:
+app.get(`/${STUDENT_ID}/users/:username/followers`, async (req, res) => {
+    try {
+        const username = req.params.username;
+        
+        // TODO: Query MongoDB follows collection
+        // Find all documents where following === username
+        
+        res.json({
+            success: true,
+            followers: []
+        });
+        
+    } catch (error) {
+        console.error('Followers error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error.'
+        });
+    }
+});
+
+// 6. Create GET endpoint to retrieve following list:
+app.get(`/${STUDENT_ID}/users/:username/following`, async (req, res) => {
+    try {
+        const username = req.params.username;
+        
+        // TODO: Query MongoDB follows collection
+        // Find all documents where follower === username
+        
+        res.json({
+            success: true,
+            following: []
+        });
+        
+    } catch (error) {
+        console.error('Following error:', error);
         res.status(500).json({
             success: false,
             message: 'Internal server error.'

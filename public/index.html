@@ -24,6 +24,9 @@
                     <a href="#" class="nav-link" data-page="create">
                         <img src="assets/img/post.png" alt="Create Post" class="nav-icons">
                     </a>
+                    <a href="#" class="nav-link" data-page="profile">
+                        <img src="assets/img/profile.png" alt="Profile" class="nav-icons">
+                    </a>
                     <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="external-link">
                         <img src="assets/img/github.png" alt="GitHub" class="nav-icons">
                     </a>
@@ -184,6 +187,68 @@
                         <!-- Message label for displaying post status -->
                         <label id="create-messageLabel" style="display:block; margin-top:10px;"></label>
                     </form>
+                </div>
+            </div>
+
+            <!-- Profile Page -->
+            <div id="profile-page" class="page-content hidden">
+                <div class="profile-container">
+                    <!-- Profile Header -->
+                    <div class="profile-header">
+                        <div class="profile-avatar">
+                            <img src="assets/img/default-avatar.png" alt="Profile Avatar" id="profileAvatar">
+                        </div>
+                        <div class="profile-info">
+                            <h2 id="profileUsername">Username</h2>
+                            <p id="profileEmail" class="profile-email">email@example.com</p>
+                            <div class="profile-stats">
+                                <div class="stat-item">
+                                    <span class="stat-number" id="statPosts">0</span>
+                                    <span class="stat-label">Posts</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-number" id="statLikes">0</span>
+                                    <span class="stat-label">Likes</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-number" id="statFollowers">0</span>
+                                    <span class="stat-label">Followers</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-number" id="statFollowing">0</span>
+                                    <span class="stat-label">Following</span>
+                                </div>
+                            </div>
+                            <!-- Follow/Unfollow button (hidden for own profile) -->
+                            <button id="followButton" class="button follow-button hidden">Follow</button>
+                        </div>
+                    </div>
+
+                    <!-- Profile Tabs -->
+                    <div class="profile-tabs">
+                        <button class="tab-button active" data-tab="posts">Posts</button>
+                        <button class="tab-button" data-tab="following">Following</button>
+                        <button class="tab-button" data-tab="followers">Followers</button>
+                    </div>
+
+                    <!-- Tab Contents -->
+                    <div class="tab-content" id="postsTab">
+                        <div class="blog-posts" id="profile-posts">
+                            <!-- User's posts will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content hidden" id="followingTab">
+                        <div class="user-list" id="following-list">
+                            <!-- Following list will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content hidden" id="followersTab">
+                        <div class="user-list" id="followers-list">
+                            <!-- Followers list will be loaded here -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

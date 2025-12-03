@@ -71,6 +71,14 @@ class BlogManager {
                 this.loadRecentPosts();
             }
         }
+
+        if (page === 'profile') {
+            // Load logged-in user's profile
+            const user = window.authManager ? window.authManager.getCurrentUser() : null;
+            if (window.profileManager) {
+                window.profileManager.loadProfile(user);
+            }
+        }
     }
 
     // Handling create a post form submission

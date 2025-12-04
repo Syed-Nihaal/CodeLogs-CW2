@@ -1,45 +1,66 @@
-// Importing modules
+// Import modules
 import express from 'express';
 import bodyParser from 'body-parser';
 import expressSession from 'express-session';
-import { connectDB, getDB } from './assets/javascript/db.js';
+import { connectDB, getDB } from './assets/javascript/connect_db.js';
 import { ObjectId } from 'mongodb';
 
-// Initialising Express application
+// Initialise Express application
 const app = express();
 app.use(bodyParser.json());
 const PORT = 8080;
 
-// Path based on Student ID
+// Path based on Student ID - REPLACE WITH YOUR ACTUAL STUDENT ID
 const STUDENT_ID = 'M01039337';
 
-// Configuring session
+// Configuring session middleware
 app.use(expressSession({
     secret: 'secret-key-change-in-production',
-    cookie: { maxAge: 3600000 }, // 1 hour
+    cookie: { maxAge: 3600000 }, // 1 hour session timeout
     resave: false,
     saveUninitialized: false
 }));
 
-// Configuring parsing
+// Configuring parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // Connect to MongoDB before starting server
 connectDB().then(() => {
-    console.log('MongoDB connection established');
+    console.log('MongoDB connection established successfully');
 }).catch((error) => {
     console.error('Failed to connect to MongoDB:', error);
     process.exit(1);
 });
 
-// Creating get route for testing server
-app.get('/', (req, res) => {
-    res.send('Express server is running on 8080.');
+
+// Validate email format
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// Validate date of birth (user must be at least 10 years old)
+function calculateAge(dob) {
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    return age;
+}
+
+// Get test route for server
+app.get(`/${STUDENT_ID}/`, (req, res) => {
+    res.send('CodeLogs Express server is running on port 8080.');
 });
 
-// Creating get route for testing Student ID path
+// Get test route for verifying Student ID path
 app.get(`/${STUDENT_ID}/test`, (req, res) => {
     res.json({
         success: true,
@@ -48,20 +69,21 @@ app.get(`/${STUDENT_ID}/test`, (req, res) => {
     });
 });
 
-// Creating post route for creating a new user (with MongoDB)
+
+// Post route for registering a new user
 app.post(`/${STUDENT_ID}/users`, async (req, res) => {
     try {
         const { username, email, dob, password } = req.body;
         
-        // Validating required fields
+        // Validate required fields
         if (!username || !email || !dob || !password) {
             return res.status(400).json({
                 success: false,
-                message: 'All fields are required.'
+                message: 'All fields (username, email, dob, password) are required.'
             });
         }
         
-        // Validating username (no spaces)
+        // Validate username (no spaces allowed)
         if (/\s/.test(username)) {
             return res.status(400).json({
                 success: false,
@@ -69,16 +91,15 @@ app.post(`/${STUDENT_ID}/users`, async (req, res) => {
             });
         }
         
-        // Validating email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        // Validate email format
+        if (!isValidEmail(email)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid email format.'
             });
         }
         
-        // Validating password length
+        // Validate password length (minimum 6 characters)
         if (password.length < 6) {
             return res.status(400).json({
                 success: false,
@@ -86,16 +107,8 @@ app.post(`/${STUDENT_ID}/users`, async (req, res) => {
             });
         }
         
-        // Validating date of birth (must be at least 10 years old)
-        const birthDate = new Date(dob);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        
+        // Validate age (must be at least 10 years old)
+        const age = calculateAge(dob);
         if (age < 10) {
             return res.status(400).json({
                 success: false,
@@ -103,7 +116,7 @@ app.post(`/${STUDENT_ID}/users`, async (req, res) => {
             });
         }
         
-        // Get database instance
+        // Get database instance and collections
         const db = getDB();
         const usersCollection = db.collection('users');
         
@@ -127,9 +140,8 @@ app.post(`/${STUDENT_ID}/users`, async (req, res) => {
             username: username,
             email: email,
             dob: dob,
-            password: password, // Note: In production, hash this password!
-            createdAt: new Date(),
-            following: [] // Array to store usernames of followed users
+            password: password, // NOTE: In production, hash this password using bcrypt!
+            createdAt: new Date()
         };
         
         // Insert user into database
@@ -139,24 +151,20 @@ app.post(`/${STUDENT_ID}/users`, async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'User registered successfully.',
-            data: {
-                userId: result.insertedId,
-                username: username,
-                email: email,
-                dob: dob
-            }
+            userId: result.insertedId,
+            username: username
         });
         
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during registration.'
         });
     }
 });
 
-// Creating get route for searching users (with MongoDB)
+// Get route for searching for users
 app.get(`/${STUDENT_ID}/users`, async (req, res) => {
     try {
         const searchQuery = req.query.q || '';
@@ -166,6 +174,7 @@ app.get(`/${STUDENT_ID}/users`, async (req, res) => {
         const usersCollection = db.collection('users');
         
         // Search for users matching query (case-insensitive)
+        // Only return username and email, exclude password
         const users = await usersCollection.find({
             username: { $regex: searchQuery, $options: 'i' }
         }).project({
@@ -176,8 +185,9 @@ app.get(`/${STUDENT_ID}/users`, async (req, res) => {
         
         res.json({
             success: true,
-            message: 'User search completed.',
+            message: 'User search completed successfully.',
             searchQuery: searchQuery,
+            count: users.length,
             users: users
         });
         
@@ -185,12 +195,12 @@ app.get(`/${STUDENT_ID}/users`, async (req, res) => {
         console.error('User search error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during user search.'
         });
     }
 });
 
-// Creating get route for checking login status
+// Get route for checking login status
 app.get(`/${STUDENT_ID}/login`, (req, res) => {
     const loggedIn = req.session.userId ? true : false;
     const username = req.session.username || null;
@@ -198,16 +208,17 @@ app.get(`/${STUDENT_ID}/login`, (req, res) => {
     res.json({
         success: true,
         loggedIn: loggedIn,
-        username: username
+        username: username,
+        userId: req.session.userId || null
     });
 });
 
-// Creating post route for logging in (with MongoDB)
+// Post route for logging in a user
 app.post(`/${STUDENT_ID}/login`, async (req, res) => {
     try {
         const { username, password } = req.body;
         
-        // Validating required fields
+        // Validate required fields
         if (!username || !password) {
             return res.status(400).json({
                 success: false,
@@ -222,7 +233,7 @@ app.post(`/${STUDENT_ID}/login`, async (req, res) => {
         // Find user in database
         const user = await usersCollection.findOne({
             username: username,
-            password: password // Note: In production, compare hashed passwords!
+            password: password
         });
         
         if (!user) {
@@ -239,26 +250,27 @@ app.post(`/${STUDENT_ID}/login`, async (req, res) => {
         res.json({
             success: true,
             message: 'Login successful.',
-            username: user.username
+            username: user.username,
+            userId: user._id.toString()
         });
         
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during login.'
         });
     }
 });
 
-// Creating delete route for logging out
+// Delete route for logging out a user
 app.delete(`/${STUDENT_ID}/login`, (req, res) => {
     // Destroy session
     req.session.destroy((err) => {
         if (err) {
             return res.status(500).json({
                 success: false,
-                message: 'Logout failed.'
+                message: 'Logout failed. Please try again.'
             });
         }
         
@@ -269,7 +281,7 @@ app.delete(`/${STUDENT_ID}/login`, (req, res) => {
     });
 });
 
-// Creating post route for creating content (with MongoDB)
+// Post route for creating new content
 app.post(`/${STUDENT_ID}/contents`, async (req, res) => {
     try {
         // Check if user is logged in
@@ -282,11 +294,11 @@ app.post(`/${STUDENT_ID}/contents`, async (req, res) => {
         
         const { title, description, code, language } = req.body;
         
-        // Validating required fields
+        // Validate required fields
         if (!title || !code || !language) {
             return res.status(400).json({
                 success: false,
-                message: 'Title, code, and language are required.'
+                message: 'Title, code, and language are required fields.'
             });
         }
         
@@ -311,23 +323,21 @@ app.post(`/${STUDENT_ID}/contents`, async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Content created successfully.',
-            data: {
-                contentId: result.insertedId,
-                title: title,
-                author: req.session.username
-            }
+            contentId: result.insertedId,
+            title: title,
+            author: req.session.username
         });
         
     } catch (error) {
         console.error('Create content error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during content creation.'
         });
     }
 });
 
-// Creating get route for searching content (with MongoDB)
+// Get route for searching for contents
 app.get(`/${STUDENT_ID}/contents`, async (req, res) => {
     try {
         const searchQuery = req.query.q || '';
@@ -336,7 +346,7 @@ app.get(`/${STUDENT_ID}/contents`, async (req, res) => {
         const db = getDB();
         const contentsCollection = db.collection('contents');
         
-        // Search for contents matching query in title, description, or language
+        // Search for contents matching query in title, description, or language (case-insensitive)
         const contents = await contentsCollection.find({
             $or: [
                 { title: { $regex: searchQuery, $options: 'i' } },
@@ -347,8 +357,9 @@ app.get(`/${STUDENT_ID}/contents`, async (req, res) => {
         
         res.json({
             success: true,
-            message: 'Content search completed.',
+            message: 'Content search completed successfully.',
             searchQuery: searchQuery,
+            count: contents.length,
             contents: contents
         });
         
@@ -356,12 +367,12 @@ app.get(`/${STUDENT_ID}/contents`, async (req, res) => {
         console.error('Content search error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during content search.'
         });
     }
 });
 
-// Creating post route for following a user (with MongoDB)
+// Post route for following another user
 app.post(`/${STUDENT_ID}/follow`, async (req, res) => {
     try {
         // Check if user is logged in
@@ -374,7 +385,7 @@ app.post(`/${STUDENT_ID}/follow`, async (req, res) => {
         
         const { username } = req.body;
         
-        // Validating required fields
+        // Validate required fields
         if (!username) {
             return res.status(400).json({
                 success: false,
@@ -392,6 +403,7 @@ app.post(`/${STUDENT_ID}/follow`, async (req, res) => {
         
         // Get database instance
         const db = getDB();
+        const followsCollection = db.collection('follows');
         const usersCollection = db.collection('users');
         
         // Check if target user exists
@@ -404,11 +416,27 @@ app.post(`/${STUDENT_ID}/follow`, async (req, res) => {
             });
         }
         
-        // Add to following array (using $addToSet to avoid duplicates)
-        const result = await usersCollection.updateOne(
-            { _id: new ObjectId(req.session.userId) },
-            { $addToSet: { following: username } }
-        );
+        // Check if already following
+        const existingFollow = await followsCollection.findOne({
+            follower: req.session.username,
+            following: username
+        });
+        
+        if (existingFollow) {
+            return res.status(400).json({
+                success: false,
+                message: `You are already following ${username}.`
+            });
+        }
+        
+        // Create follow relationship
+        await followsCollection.insertOne({
+            follower: req.session.username,
+            followerId: new ObjectId(req.session.userId),
+            following: username,
+            followingId: targetUser._id,
+            createdAt: new Date()
+        });
         
         res.json({
             success: true,
@@ -420,12 +448,12 @@ app.post(`/${STUDENT_ID}/follow`, async (req, res) => {
         console.error('Follow error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during follow operation.'
         });
     }
 });
 
-// Creating delete route for unfollowing a user (with MongoDB)
+// Delete route for unfollowing another user
 app.delete(`/${STUDENT_ID}/follow`, async (req, res) => {
     try {
         // Check if user is logged in
@@ -438,7 +466,7 @@ app.delete(`/${STUDENT_ID}/follow`, async (req, res) => {
         
         const { username } = req.body;
         
-        // Validating required fields
+        // Validate required fields
         if (!username) {
             return res.status(400).json({
                 success: false,
@@ -448,13 +476,20 @@ app.delete(`/${STUDENT_ID}/follow`, async (req, res) => {
         
         // Get database instance
         const db = getDB();
-        const usersCollection = db.collection('users');
+        const followsCollection = db.collection('follows');
         
-        // Remove from following array
-        const result = await usersCollection.updateOne(
-            { _id: new ObjectId(req.session.userId) },
-            { $pull: { following: username } }
-        );
+        // Remove follow relationship
+        const result = await followsCollection.deleteOne({
+            follower: req.session.username,
+            following: username
+        });
+        
+        if (result.deletedCount === 0) {
+            return res.status(404).json({
+                success: false,
+                message: `You are not following ${username}.`
+            });
+        }
         
         res.json({
             success: true,
@@ -466,12 +501,13 @@ app.delete(`/${STUDENT_ID}/follow`, async (req, res) => {
         console.error('Unfollow error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during unfollow operation.'
         });
     }
 });
 
-// Creating get route for getting feed (with MongoDB)
+
+// Get route for feed
 app.get(`/${STUDENT_ID}/feed`, async (req, res) => {
     try {
         // Check if user is logged in
@@ -484,34 +520,36 @@ app.get(`/${STUDENT_ID}/feed`, async (req, res) => {
         
         // Get database instance
         const db = getDB();
-        const usersCollection = db.collection('users');
+        const followsCollection = db.collection('follows');
         const contentsCollection = db.collection('contents');
         
-        // Get current user's following list
-        const currentUser = await usersCollection.findOne(
-            { _id: new ObjectId(req.session.userId) },
-            { projection: { following: 1 } }
-        );
+        // Get list of users the current user is following
+        const followingList = await followsCollection.find({
+            follower: req.session.username
+        }).toArray();
         
-        const followingList = currentUser?.following || [];
+        // Extract usernames of followed users
+        const followedUsernames = followingList.map(follow => follow.following);
         
         // If not following anyone, return empty feed
-        if (followingList.length === 0) {
+        if (followedUsernames.length === 0) {
             return res.json({
                 success: true,
                 message: 'Your feed is empty. Follow users to see their posts.',
+                count: 0,
                 contents: []
             });
         }
         
-        // Get contents from followed users only
+        // Get contents ONLY from followed users
         const contents = await contentsCollection.find({
-            author: { $in: followingList }
+            author: { $in: followedUsernames }
         }).sort({ createdAt: -1 }).toArray();
         
         res.json({
             success: true,
             message: 'Feed retrieved successfully.',
+            count: contents.length,
             contents: contents
         });
         
@@ -519,22 +557,48 @@ app.get(`/${STUDENT_ID}/feed`, async (req, res) => {
         console.error('Feed error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during feed retrieval.'
         });
     }
 });
 
+// Get route for user stats
 app.get(`/${STUDENT_ID}/users/:username/stats`, async (req, res) => {
     try {
         const username = req.params.username;
         
+        // Get database instance
+        const db = getDB();
+        const usersCollection = db.collection('users');
+        const contentsCollection = db.collection('contents');
+        const followsCollection = db.collection('follows');
+        
+        // Check if user exists
+        const user = await usersCollection.findOne({ username: username });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found.'
+            });
+        }
+        
+        // Get posts count
+        const postsCount = await contentsCollection.countDocuments({ author: username });
+        
+        // Get followers count
+        const followersCount = await followsCollection.countDocuments({ following: username });
+        
+        // Get following count
+        const followingCount = await followsCollection.countDocuments({ follower: username });
+        
         res.json({
             success: true,
+            username: username,
             stats: {
-                posts: 0,
-                likes: 0,
-                followers: 0,
-                following: 0
+                posts: postsCount,
+                followers: followersCount,
+                following: followingCount
             }
         });
         
@@ -542,57 +606,236 @@ app.get(`/${STUDENT_ID}/users/:username/stats`, async (req, res) => {
         console.error('Stats error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during stats retrieval.'
         });
     }
 });
 
-// 5. Create GET endpoint to retrieve followers list:
+// Get route for followers
 app.get(`/${STUDENT_ID}/users/:username/followers`, async (req, res) => {
     try {
         const username = req.params.username;
         
-        // TODO: Query MongoDB follows collection
-        // Find all documents where following === username
+        // Get database instance
+        const db = getDB();
+        const followsCollection = db.collection('follows');
+        const usersCollection = db.collection('users');
+        
+        // Check if user exists
+        const user = await usersCollection.findOne({ username: username });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found.'
+            });
+        }
+        
+        // Get followers (users who follow this username)
+        const followers = await followsCollection.find({
+            following: username
+        }).toArray();
+        
+        // Get detailed user information for each follower
+        const followerUsernames = followers.map(f => f.follower);
+        const followerDetails = await usersCollection.find({
+            username: { $in: followerUsernames }
+        }).project({
+            username: 1,
+            email: 1,
+            _id: 1
+        }).toArray();
         
         res.json({
             success: true,
-            followers: []
+            username: username,
+            count: followerDetails.length,
+            followers: followerDetails
         });
         
     } catch (error) {
         console.error('Followers error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during followers retrieval.'
         });
     }
 });
 
-// 6. Create GET endpoint to retrieve following list:
+// Get route for following
 app.get(`/${STUDENT_ID}/users/:username/following`, async (req, res) => {
     try {
         const username = req.params.username;
         
-        // TODO: Query MongoDB follows collection
-        // Find all documents where follower === username
+        // Get database instance
+        const db = getDB();
+        const followsCollection = db.collection('follows');
+        const usersCollection = db.collection('users');
+        
+        // Check if user exists
+        const user = await usersCollection.findOne({ username: username });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found.'
+            });
+        }
+        
+        // Get following (users that this username follows)
+        const following = await followsCollection.find({
+            follower: username
+        }).toArray();
+        
+        // Get detailed user information for each followed user
+        const followingUsernames = following.map(f => f.following);
+        const followingDetails = await usersCollection.find({
+            username: { $in: followingUsernames }
+        }).project({
+            username: 1,
+            email: 1,
+            _id: 1
+        }).toArray();
         
         res.json({
             success: true,
-            following: []
+            username: username,
+            count: followingDetails.length,
+            following: followingDetails
         });
         
     } catch (error) {
         console.error('Following error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error.'
+            message: 'Internal server error during following retrieval.'
         });
     }
 });
 
-// Starting the Express server
+// Get route for user posts
+app.get(`/${STUDENT_ID}/users/:username/posts`, async (req, res) => {
+    try {
+        const username = req.params.username;
+        
+        // Get database instance
+        const db = getDB();
+        const usersCollection = db.collection('users');
+        const contentsCollection = db.collection('contents');
+        
+        // Check if user exists
+        const user = await usersCollection.findOne({ username: username });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found.'
+            });
+        }
+        
+        // Get all posts by this user
+        const posts = await contentsCollection.find({
+            author: username
+        }).sort({ createdAt: -1 }).toArray();
+        
+        res.json({
+            success: true,
+            username: username,
+            count: posts.length,
+            posts: posts
+        });
+        
+    } catch (error) {
+        console.error('User posts error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error during posts retrieval.'
+        });
+    }
+});
+
+// Get route for user profile
+app.get(`/${STUDENT_ID}/users/:username/profile`, async (req, res) => {
+    try {
+        const username = req.params.username;
+        
+        // Get database instance
+        const db = getDB();
+        const usersCollection = db.collection('users');
+        const contentsCollection = db.collection('contents');
+        const followsCollection = db.collection('follows');
+        
+        // Get user information (exclude password)
+        const user = await usersCollection.findOne(
+            { username: username },
+            { projection: { password: 0 } }
+        );
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found.'
+            });
+        }
+        
+        // Get statistics
+        const postsCount = await contentsCollection.countDocuments({ author: username });
+        const followersCount = await followsCollection.countDocuments({ following: username });
+        const followingCount = await followsCollection.countDocuments({ follower: username });
+        
+        // Check if current user is following this profile
+        let isFollowing = false;
+        if (req.session.username && req.session.username !== username) {
+            const followRelation = await followsCollection.findOne({
+                follower: req.session.username,
+                following: username
+            });
+            isFollowing = !!followRelation;
+        }
+        
+        res.json({
+            success: true,
+            profile: {
+                username: user.username,
+                email: user.email,
+                createdAt: user.createdAt,
+                stats: {
+                    posts: postsCount,
+                    followers: followersCount,
+                    following: followingCount
+                },
+                isFollowing: isFollowing
+            }
+        });
+        
+    } catch (error) {
+        console.error('Profile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error during profile retrieval.'
+        });
+    }
+});
+
+// Use 404 handler for undefined routes
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'Route not found.'
+    });
+});
+
+// Use global error handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({
+        success: false,
+        message: 'An unexpected error occurred.'
+    });
+});
+
+// Start the Express server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
-    console.log(`Student ID path: http://localhost:${PORT}/${STUDENT_ID}/`);
+    console.log(`Website is running on http://localhost:${PORT}/${STUDENT_ID}/`);
 });

@@ -1,9 +1,15 @@
 // Import modules
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import bodyParser from 'body-parser';
 import expressSession from 'express-session';
-import { connectDB, getDB } from './assets/javascript/connect_db.js';
+import { connectDB, getDB } from './connect_db.js';
 import { ObjectId } from 'mongodb';
+
+// Get current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Initialise Express application
 const app = express();
@@ -21,10 +27,12 @@ app.use(expressSession({
     saveUninitialized: false
 }));
 
-// Configuring parsing middleware
+// Configuring parsing middleware and static file serving
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(`/${STUDENT_ID}`, express.static(path.join(__dirname, 'public'), {
+    index: 'index.html'
+}));
 
 // Connect to MongoDB before starting server
 connectDB().then(() => {
@@ -55,8 +63,13 @@ function calculateAge(dob) {
     return age;
 }
 
+// Redirect root to student ID path
+app.get('/', (req, res) => {
+    res.redirect(`/${STUDENT_ID}/`);
+});
+
 // Get test route for server
-app.get(`/${STUDENT_ID}/`, (req, res) => {
+app.get(`/`, (req, res) => {
     res.send('CodeLogs Express server is running on port 8080.');
 });
 
@@ -818,11 +831,19 @@ app.get(`/${STUDENT_ID}/users/:username/profile`, async (req, res) => {
 });
 
 // Use 404 handler for undefined routes
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'Route not found.'
-    });
+app.use((req, res, next) => {
+    if (res.headersSent) {
+        return;
+    }
+    if (!req.path.match(/\.[^/.]+$/)) {
+        res.status(404).json({
+            success: false,
+            message: 'API route not found.',
+            path: req.path
+        });
+    } else {
+        res.status(404).send('File not found');
+    }
 });
 
 // Use global error handler
@@ -837,5 +858,6 @@ app.use((err, req, res, next) => {
 // Start the Express server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
-    console.log(`Website is running on http://localhost:${PORT}/${STUDENT_ID}/`);
+    console.log(`Website accessible at: http://localhost:${PORT}/${STUDENT_ID}/`);
+    console.log(`API endpoints available at: http://localhost:${PORT}/${STUDENT_ID}/...`);
 });

@@ -1,6 +1,11 @@
-// Registration Manager class to handle user registration functionality
+// Registration Manager class
+// Handles user registration functionality with AJAX calls to backend
 class RegistrationManager {
     constructor() {
+        // Base URL for API calls with Student ID
+        const STUDENT_ID = 'M01039337';
+        this.baseURL = `/${STUDENT_ID}`;
+        
         this.registerForm = document.getElementById('registerForm');
         this.messageLabel = document.getElementById('register-messageLabel');
         this.redirectDelay = 2000;
@@ -8,14 +13,20 @@ class RegistrationManager {
         this.init();
     }
 
-    // Initialising registration manager and set up event listeners
+    /**
+     * Initialise registration manager and set up event listeners
+     */
     init() {
         if (this.registerForm) {
             this.registerForm.addEventListener('submit', (e) => this.handleRegistration(e));
         }
     }
 
-    // Displaying message to user
+    /**
+     * Display message to user
+     * @param {string} message - Message to display
+     * @param {boolean} isSuccess - Whether message is a success message
+     */
     displayMessage(message, isSuccess = false) {
         if (this.messageLabel) {
             this.messageLabel.textContent = message;
@@ -23,37 +34,31 @@ class RegistrationManager {
         }
     }
 
-    // Clear any existing messages
+    /**
+     * Clear any existing messages
+     */
     clearMessage() {
         if (this.messageLabel) {
             this.messageLabel.textContent = '';
         }
     }
 
-    // Validate password match
+    /**
+     * Validate password match
+     * @param {string} password - Password
+     * @param {string} confirmPassword - Confirmation password
+     * @returns {boolean} True if passwords match
+     */
     validatePasswordMatch(password, confirmPassword) {
         return password === confirmPassword;
     }
 
-    // Check if username or email already exists
-    checkUserExists(username, email) {
-        const users = window.authManager ? window.authManager.getUsers() : [];
-        return users.find(user => user.username === username || user.email === email);
-    }
-
-    // Create new user object
-    createUser(username, email, dob, password) {
-        return {
-            username: username,
-            email: email,
-            dob: dob,
-            password: password // Note: In production, this should be hashed on the server
-        };
-    }
-
-    // Handle successful registration
+    /**
+     * Handle successful registration
+     */
     handleSuccessfulRegistration() {
         this.displayMessage('Registration successful! Redirecting to login...', true);
+        console.log('Registration successful');
         
         // Redirect to login page after delay
         setTimeout(() => {
@@ -63,8 +68,12 @@ class RegistrationManager {
         }, this.redirectDelay);
     }
 
-    // Handle registration form submission
-    handleRegistration(e) {
+    /**
+     * Handle registration form submission using AJAX
+     * Sends POST request to /M01039337/users
+     * @param {Event} e - Form submit event
+     */
+    async handleRegistration(e) {
         e.preventDefault();
         
         // Get form input values and trim whitespace
@@ -112,25 +121,38 @@ class RegistrationManager {
             return;
         }
 
-        // Check if user already exists
-        // TODO: Replace with AJAX call to check backend
-        const userExists = this.checkUserExists(username, email);
-        if (userExists) {
-            this.displayMessage('Username or email already exists. Please choose another.');
-            return;
+        try {
+            // Send POST request to /M01039337/users with registration data
+            const response = await fetch(`${this.baseURL}/users`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    email: email,
+                    dob: dob,
+                    password: password
+                })
+            });
+            
+            // Parse JSON response
+            const data = await response.json();
+            
+            // Handle response based on success status
+            if (data.success) {
+                // Registration successful
+                this.handleSuccessfulRegistration();
+            } else {
+                // Registration failed - display error message
+                this.displayMessage(data.message || 'Registration failed. Please try again.');
+            }
+            
+        } catch (error) {
+            // Handle network or parsing errors
+            console.error('Registration error:', error);
+            this.displayMessage('An error occurred during registration. Please try again.');
         }
-
-        // Create new user and save
-        // TODO: Replace with AJAX call to POST /M00XXXXX/users
-        const users = window.authManager ? window.authManager.getUsers() : [];
-        const newUser = this.createUser(username, email, dob, password);
-        users.push(newUser);
-        
-        if (window.authManager) {
-            window.authManager.saveUsers(users);
-        }
-        
-        this.handleSuccessfulRegistration();
     }
 }
 

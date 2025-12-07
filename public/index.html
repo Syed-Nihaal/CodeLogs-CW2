@@ -30,18 +30,18 @@
                     <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="external-link">
                         <img src="assets/img/github.png" alt="GitHub" class="nav-icons">
                     </a>
-                    <div id="userInfo" class="user-info hidden">
-                        <span id="usernameDisplay"></span>
-                        <a href="#" id="logoutButton" class="logout-nav-button">
-                            <img src="assets/img/logout.png" alt="Logout" class="nav-icons">
-                        </a>
-                    </div>
                     <div id="authButtons" class="nav-links">
                         <a href="#" class="nav-link" data-page="login">
                             <img src="assets/img/login.png" alt="Login" class="nav-icons">
                         </a>
                         <a href="#" class="nav-link" data-page="register">
                             <img src="assets/img/register.png" alt="Register" class="nav-icons">
+                        </a>
+                    </div>
+                    <div id="userInfo" class="user-info hidden">
+                        <span id="usernameDisplay"></span>
+                        <a href="#" id="logoutButton" class="logout-nav-button">
+                            <img src="assets/img/logout.png" alt="Logout" class="nav-icons">
                         </a>
                     </div>
                 </div>
@@ -174,7 +174,7 @@
             </div>
 
             <!-- Create Post Page -->
-            <div id="posts-page" class="page-content hidden">
+            <div id="create-page" class="page-content hidden">
                 <div class="create-post-form">
                     <h2 style="text-align: center;">Create New Post</h2>
                     <br>
@@ -189,8 +189,23 @@
                         <textarea id="post-code" name="code" placeholder="Paste your code here..." required></textarea>
                         
                         <label for="post-language">Programming Language</label>
-                        <input type="text" id="post-language" name="language" placeholder="e.g., JavaScript, Python, etc." required>
-                        
+                        <select id="post-language" name="language" required>
+                            <option value="">Select a language...</option>
+                            <option value="JavaScript">JavaScript</option>
+                            <option value="Python">Python</option>
+                            <option value="C">C</option>
+                            <option value="C++">C++</option>
+                            <option value="C#">C#</option>
+                            <option value="PHP">PHP</option>
+                            <option value="Go">Go</option>
+                            <option value="Rust">Rust</option>
+                            <option value="TypeScript">TypeScript</option>
+                            <option value="HTML">HTML</option>
+                            <option value="CSS">CSS</option>
+                            <option value="SQL">SQL</option>
+                            <option value="Shell">Shell/Bash</option>
+                            <option value="Other">Other</option>
+                        </select>
                         <button type="submit" class="button register-button">Publish Post</button>
                         <!-- Message label for displaying post status -->
                         <label id="create-messageLabel" style="display:block; margin-top:10px;"></label>

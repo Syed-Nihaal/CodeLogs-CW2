@@ -58,7 +58,7 @@ async function setupDatabase() {
     } finally {
         // Close connection
         await client.close();
-        console.log('\n✓ Database connection closed');
+        console.log('\n Database connection closed');
     }
 }
 

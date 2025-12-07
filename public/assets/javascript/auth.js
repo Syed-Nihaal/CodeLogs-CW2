@@ -1,7 +1,12 @@
-// Blog Manager for Code Blog
+// Authentication Manager for Code Blog
+// Handles user authentication, login status checks, and logout functionality
 class AuthManager {
     constructor() {
-        // Session keys for tracking logged-in user
+        // Base URL for API calls with Student ID
+        const STUDENT_ID = 'M01039337';
+        this.baseURL = `/${STUDENT_ID}`;
+        
+        // Session keys for tracking logged-in user (fallback only)
         this.loggedInUserKey = 'loggedInUser';
         this.sessionUserKey = 'currentUser';
         
@@ -46,58 +51,56 @@ class AuthManager {
     }
 
     /**
-     * Check if user is currently logged in
+     * Check if user is currently logged in by calling the server
      * Update UI accordingly
      */
-    checkLoginStatus() {
-        const user = this.getCurrentUser();
-        
-        if (user) {
-            this.updateUIForLoggedInUser(user);
-        } else {
+    async checkLoginStatus() {
+        try {
+            // Call GET /M01039337/login to check login status
+            const response = await fetch(`${this.baseURL}/login`, {
+                method: 'GET',
+                credentials: 'same-origin' // Include session cookie
+            });
+            
+            const data = await response.json();
+            
+            // Update UI based on login status
+            if (data.success && data.loggedIn && data.username) {
+                this.updateUIForLoggedInUser(data.username);
+            } else {
+                this.updateUIForGuest();
+            }
+            
+        } catch (error) {
+            console.error('Error checking login status:', error);
+            // Fall back to guest view if error occurs
             this.updateUIForGuest();
         }
     }
 
     /**
-     * Get currently logged-in user
-     * @returns {string|null} Username or null if not logged in
+     * Get currently logged-in user from server
+     * @returns {Promise<string|null>} Username or null if not logged in
      */
-    getCurrentUser() {
-        // Check sessionStorage first (for current session)
-        let user = sessionStorage.getItem(this.sessionUserKey);
-        
-        // Fall back to localStorage (for persistent login)
-        if (!user) {
-            user = localStorage.getItem(this.loggedInUserKey);
-            if (user) {
-                // Restore session
-                sessionStorage.setItem(this.sessionUserKey, user);
+    async getCurrentUser() {
+        try {
+            // Call GET /M01039337/login to get current user
+            const response = await fetch(`${this.baseURL}/login`, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.loggedIn) {
+                return data.username;
             }
+            return null;
+            
+        } catch (error) {
+            console.error('Error getting current user:', error);
+            return null;
         }
-        
-        return user;
-    }
-
-    /**
-     * Set logged-in user
-     * Store in both localStorage and sessionStorage
-     * @param {string} username - Username to set as logged in
-     */
-    setLoggedInUser(username) {
-        localStorage.setItem(this.loggedInUserKey, username);
-        sessionStorage.setItem(this.sessionUserKey, username);
-        this.updateUIForLoggedInUser(username);
-    }
-
-    /**
-     * Clear logged-in user
-     * Remove from both localStorage and sessionStorage
-     */
-    clearLoggedInUser() {
-        localStorage.removeItem(this.loggedInUserKey);
-        sessionStorage.removeItem(this.sessionUserKey);
-        this.updateUIForGuest();
     }
 
     /**
@@ -152,18 +155,37 @@ class AuthManager {
     }
 
     /**
-     * Handle logout
-     * TODO: Replace with AJAX call to DELETE /M00XXXXX/login
+     * Handle logout using AJAX call to DELETE /M01039337/login
+     * @param {Event} e - Click event
      */
-    handleLogout(e) {
+    async handleLogout(e) {
         e.preventDefault();
         
-        // Clear stored user data
-        this.clearLoggedInUser();
-        
-        // Redirect to home page
-        if (window.blogManager) {
-            window.blogManager.showPage('home');
+        try {
+            // Call DELETE /M01039337/login to log out
+            const response = await fetch(`${this.baseURL}/login`, {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update UI for guest
+                this.updateUIForGuest();
+                
+                // Redirect to home page
+                if (window.blogManager) {
+                    window.blogManager.showPage('home');
+                }
+            } else {
+                console.error('Logout failed:', data.message);
+                alert('Logout failed. Please try again.');
+            }
+            
+        } catch (error) {
+            console.error('Error during logout:', error);
+            alert('An error occurred during logout. Please try again.');
         }
     }
 
@@ -215,24 +237,6 @@ class AuthManager {
         }
         
         return age >= 10;
-    }
-
-    /**
-     * Get all registered users from localStorage
-     * TODO: This will be replaced with backend calls
-     * @returns {Array} Array of user objects
-     */
-    getUsers() {
-        return JSON.parse(localStorage.getItem('users')) || [];
-    }
-
-    /**
-     * Save users array to localStorage
-     * TODO: This will be replaced with backend calls
-     * @param {Array} users - Array of user objects to save
-     */
-    saveUsers(users) {
-        localStorage.setItem('users', JSON.stringify(users));
     }
 }
 

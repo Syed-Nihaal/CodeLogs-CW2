@@ -1,14 +1,12 @@
 /**
- * Profile Manager class to handle user profile functionality
+ * Profile Manager class to handle user profile functionality with AJAX
  * Manages profile display, stats, posts, followers, and following
  */
 class ProfileManager {
     constructor() {
-        // Keys for localStorage
-        this.postsKey = 'posts';
-        this.followersKey = 'followers'; // Format: {username: [follower1, follower2, ...]}
-        this.followingKey = 'following'; // Format: {username: [following1, following2, ...]}
-        this.likesKey = 'likes'; // Format: {postId: [user1, user2, ...]}
+        // Base URL for API calls with Student ID
+        const STUDENT_ID = 'M01039337';
+        this.baseURL = `/${STUDENT_ID}`;
         
         // Current viewing user (can be different from logged-in user)
         this.currentProfileUser = null;
@@ -86,12 +84,13 @@ class ProfileManager {
     }
 
     /**
-     * Load profile for specified user
+     * Load profile for specified user using AJAX
+     * Sends GET request to /M01039337/users/:username/profile
      * @param {string} username - Username of profile to load
      */
-    loadProfile(username) {
+    async loadProfile(username) {
         // Get logged-in user
-        const loggedInUser = window.authManager ? window.authManager.getCurrentUser() : null;
+        const loggedInUser = window.authManager ? await window.authManager.getCurrentUser() : null;
         
         // If no username specified, load logged-in user's profile
         if (!username) {
@@ -108,92 +107,78 @@ class ProfileManager {
         
         this.currentProfileUser = username;
         
-        // Get user data
-        const users = window.authManager ? window.authManager.getUsers() : [];
-        const user = users.find(u => u.username === username);
-        
-        if (!user) {
-            alert('User not found');
-            return;
-        }
-        
-        // Update profile header
-        this.updateProfileHeader(user);
-        
-        // Update stats
-        this.updateProfileStats(username);
-        
-        // Show/hide follow button
-        this.updateFollowButton(username, loggedInUser);
-        
-        // Load posts by default
-        this.loadUserPosts();
-        
-        // Show profile page
-        if (window.blogManager) {
-            window.blogManager.showPage('profile');
+        try {
+            // Send GET request to /M01039337/users/:username/profile
+            const response = await fetch(`${this.baseURL}/users/${username}/profile`, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            
+            // Parse JSON response
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update profile header
+                this.updateProfileHeader(data.profile);
+                
+                // Update stats
+                this.updateProfileStats(data.profile.stats);
+                
+                // Show/hide follow button
+                this.updateFollowButton(username, loggedInUser, data.profile.isFollowing);
+                
+                // Load posts by default
+                this.loadUserPosts();
+                
+                // Show profile page
+                if (window.blogManager) {
+                    window.blogManager.showPage('profile');
+                }
+            } else {
+                alert(data.message || 'User not found');
+            }
+            
+        } catch (error) {
+            console.error('Profile error:', error);
+            alert('An error occurred while loading profile.');
         }
     }
 
     /**
      * Update profile header with user information
-     * @param {Object} user - User object containing username and email
+     * @param {Object} profile - Profile object containing username and email
      */
-    updateProfileHeader(user) {
+    updateProfileHeader(profile) {
         const usernameEl = document.getElementById('profileUsername');
         const emailEl = document.getElementById('profileEmail');
         
-        if (usernameEl) usernameEl.textContent = user.username;
-        if (emailEl) emailEl.textContent = user.email;
+        if (usernameEl) usernameEl.textContent = profile.username;
+        if (emailEl) emailEl.textContent = profile.email;
     }
 
     /**
      * Update profile statistics (posts, likes, followers, following)
-     * @param {string} username - Username to get stats for
+     * @param {Object} stats - Stats object containing counts
      */
-    updateProfileStats(username) {
-        // Get posts count
-        const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
-        const userPosts = posts.filter(post => post.author === username);
-        const postsCount = userPosts.length;
-        
-        // Get likes count (total likes on all user's posts)
-        const likes = JSON.parse(localStorage.getItem(this.likesKey)) || {};
-        let likesCount = 0;
-        userPosts.forEach(post => {
-            if (likes[post.id]) {
-                likesCount += likes[post.id].length;
-            }
-        });
-        
-        // Get followers count
-        const followersData = JSON.parse(localStorage.getItem(this.followersKey)) || {};
-        const followers = followersData[username] || [];
-        const followersCount = followers.length;
-        
-        // Get following count
-        const followingData = JSON.parse(localStorage.getItem(this.followingKey)) || {};
-        const following = followingData[username] || [];
-        const followingCount = following.length;
-        
-        // Update UI
+    updateProfileStats(stats) {
         const statPosts = document.getElementById('statPosts');
         const statLikes = document.getElementById('statLikes');
         const statFollowers = document.getElementById('statFollowers');
         const statFollowing = document.getElementById('statFollowing');
         
-        if (statPosts) statPosts.textContent = postsCount;
-        if (statLikes) statLikes.textContent = likesCount;
-        if (statFollowers) statFollowers.textContent = followersCount;
-        if (statFollowing) statFollowing.textContent = followingCount;
+        if (statPosts) statPosts.textContent = stats.posts || 0;
+        if (statLikes) statLikes.textContent = stats.likes || 0;
+        if (statFollowers) statFollowers.textContent = stats.followers || 0;
+        if (statFollowing) statFollowing.textContent = stats.following || 0;
     }
 
     /**
      * Update follow button visibility and state
      * @param {string} profileUsername - Username of profile being viewed
      * @param {string} loggedInUser - Username of logged-in user
+     * @param {boolean} isFollowing - Whether user is already following
      */
-    updateFollowButton(profileUsername, loggedInUser) {
+    updateFollowButton(profileUsername, loggedInUser, isFollowing) {
         const followButton = document.getElementById('followButton');
         
         if (!followButton) return;
@@ -207,9 +192,6 @@ class ProfileManager {
         // Show button and update state
         followButton.classList.remove('hidden');
         
-        // Check if already following
-        const isFollowing = this.isFollowing(loggedInUser, profileUsername);
-        
         if (isFollowing) {
             followButton.textContent = 'Unfollow';
             followButton.classList.add('following');
@@ -220,222 +202,276 @@ class ProfileManager {
     }
 
     /**
-     * Check if user is following another user
-     * @param {string} follower - Username of potential follower
-     * @param {string} following - Username of user being followed
-     * @returns {boolean} True if following, false otherwise
+     * Handle follow/unfollow button click using AJAX
+     * Sends POST or DELETE request to /M01039337/follow
      */
-    isFollowing(follower, following) {
-        const followingData = JSON.parse(localStorage.getItem(this.followingKey)) || {};
-        const userFollowing = followingData[follower] || [];
-        return userFollowing.includes(following);
-    }
-
-    /**
-     * Handle follow/unfollow button click
-     * TODO: Replace with AJAX calls to POST/DELETE /M00XXXXX/follow
-     */
-    handleFollowToggle() {
-        const loggedInUser = window.authManager ? window.authManager.getCurrentUser() : null;
+    async handleFollowToggle() {
+        const loggedInUser = window.authManager ? await window.authManager.getCurrentUser() : null;
         
         if (!loggedInUser) {
             alert('Please log in to follow users');
             return;
         }
         
-        const isFollowing = this.isFollowing(loggedInUser, this.currentProfileUser);
+        const followButton = document.getElementById('followButton');
+        const isFollowing = followButton.classList.contains('following');
         
-        if (isFollowing) {
-            this.unfollowUser(loggedInUser, this.currentProfileUser);
-        } else {
-            this.followUser(loggedInUser, this.currentProfileUser);
+        try {
+            if (isFollowing) {
+                // Unfollow - send DELETE request
+                await this.unfollowUser(this.currentProfileUser);
+            } else {
+                // Follow - send POST request
+                await this.followUser(this.currentProfileUser);
+            }
+            
+            // Reload profile to update stats and button state
+            this.loadProfile(this.currentProfileUser);
+            
+        } catch (error) {
+            console.error('Follow toggle error:', error);
+            alert('An error occurred. Please try again.');
         }
     }
 
     /**
-     * Follow a user
-     * @param {string} follower - Username of follower
-     * @param {string} following - Username to follow
+     * Follow a user using AJAX
+     * Sends POST request to /M01039337/follow
+     * @param {string} username - Username to follow
      */
-    followUser(follower, following) {
-        // Update following list
-        const followingData = JSON.parse(localStorage.getItem(this.followingKey)) || {};
-        if (!followingData[follower]) {
-            followingData[follower] = [];
+    async followUser(username) {
+        try {
+            const response = await fetch(`${this.baseURL}/follow`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    username: username
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                alert(data.message || 'Failed to follow user.');
+            }
+            
+        } catch (error) {
+            console.error('Follow error:', error);
+            throw error;
         }
-        if (!followingData[follower].includes(following)) {
-            followingData[follower].push(following);
-        }
-        localStorage.setItem(this.followingKey, JSON.stringify(followingData));
-        
-        // Update followers list
-        const followersData = JSON.parse(localStorage.getItem(this.followersKey)) || {};
-        if (!followersData[following]) {
-            followersData[following] = [];
-        }
-        if (!followersData[following].includes(follower)) {
-            followersData[following].push(follower);
-        }
-        localStorage.setItem(this.followersKey, JSON.stringify(followersData));
-        
-        // Update UI
-        this.updateProfileStats(this.currentProfileUser);
-        this.updateFollowButton(this.currentProfileUser, follower);
     }
 
     /**
-     * Unfollow a user
-     * @param {string} follower - Username of follower
-     * @param {string} following - Username to unfollow
+     * Unfollow a user using AJAX
+     * Sends DELETE request to /M01039337/follow
+     * @param {string} username - Username to unfollow
      */
-    unfollowUser(follower, following) {
-        // Update following list
-        const followingData = JSON.parse(localStorage.getItem(this.followingKey)) || {};
-        if (followingData[follower]) {
-            followingData[follower] = followingData[follower].filter(u => u !== following);
+    async unfollowUser(username) {
+        try {
+            const response = await fetch(`${this.baseURL}/follow`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    username: username
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                alert(data.message || 'Failed to unfollow user.');
+            }
+            
+        } catch (error) {
+            console.error('Unfollow error:', error);
+            throw error;
         }
-        localStorage.setItem(this.followingKey, JSON.stringify(followingData));
-        
-        // Update followers list
-        const followersData = JSON.parse(localStorage.getItem(this.followersKey)) || {};
-        if (followersData[following]) {
-            followersData[following] = followersData[following].filter(u => u !== follower);
-        }
-        localStorage.setItem(this.followersKey, JSON.stringify(followersData));
-        
-        // Update UI
-        this.updateProfileStats(this.currentProfileUser);
-        this.updateFollowButton(this.currentProfileUser, follower);
     }
 
     /**
-     * Load posts created by current profile user
+     * Load posts created by current profile user using AJAX
+     * Sends GET request to /M01039337/users/:username/posts
      */
-    loadUserPosts() {
-        const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
-        const userPosts = posts.filter(post => post.author === this.currentProfileUser);
-        
+    async loadUserPosts() {
         const container = document.getElementById('profile-posts');
         
         if (!container) return;
         
-        if (userPosts.length === 0) {
-            container.innerHTML = '<p class="no-results-message">No posts yet.</p>';
-            return;
+        try {
+            const response = await fetch(`${this.baseURL}/users/${this.currentProfileUser}/posts`, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (data.posts.length === 0) {
+                    container.innerHTML = '<p class="no-results-message">No posts yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = data.posts.map(post => `
+                    <div class="blog-card">
+                        <h3 class="blog-title">${this.escapeHtml(post.title)}</h3>
+                        ${post.description ? `<p>${this.escapeHtml(post.description)}</p>` : ''}
+                        <div class="blog-code">${this.escapeHtml(post.code)}</div>
+                        <p><strong>Language:</strong> ${this.escapeHtml(post.language)}</p>
+                        <p class="blog-author">Posted on ${new Date(post.createdAt).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="no-results-message">Failed to load posts.</p>';
+            }
+            
+        } catch (error) {
+            console.error('Load posts error:', error);
+            container.innerHTML = '<p class="no-results-message">Error loading posts.</p>';
         }
-        
-        container.innerHTML = userPosts.map(post => `
-            <div class="blog-card">
-                <h3 class="blog-title">${this.escapeHtml(post.title)}</h3>
-                ${post.description ? `<p>${this.escapeHtml(post.description)}</p>` : ''}
-                <div class="blog-code">${this.escapeHtml(post.code)}</div>
-                <p><strong>Language:</strong> ${this.escapeHtml(post.language)}</p>
-                <p class="blog-author">Posted on ${new Date(post.date).toLocaleDateString()}</p>
-            </div>
-        `).join('');
     }
 
     /**
-     * Load list of users that current profile user is following
+     * Load list of users that current profile user is following using AJAX
+     * Sends GET request to /M01039337/users/:username/following
      */
-    loadFollowing() {
-        const followingData = JSON.parse(localStorage.getItem(this.followingKey)) || {};
-        const following = followingData[this.currentProfileUser] || [];
-        
+    async loadFollowing() {
         const container = document.getElementById('following-list');
         
         if (!container) return;
         
-        if (following.length === 0) {
-            container.innerHTML = '<p class="no-results-message">Not following anyone yet.</p>';
-            return;
+        try {
+            const response = await fetch(`${this.baseURL}/users/${this.currentProfileUser}/following`, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (data.following.length === 0) {
+                    container.innerHTML = '<p class="no-results-message">Not following anyone yet.</p>';
+                    return;
+                }
+                
+                // Get stats for each user
+                container.innerHTML = await Promise.all(data.following.map(async user => {
+                    try {
+                        const statsResponse = await fetch(`${this.baseURL}/users/${user.username}/stats`, {
+                            method: 'GET',
+                            credentials: 'same-origin'
+                        });
+                        const statsData = await statsResponse.json();
+                        const stats = statsData.success ? statsData.stats : { posts: 0, followers: 0 };
+                        
+                        return `
+                            <div class="user-card" data-username="${user.username}">
+                                <div class="user-card-header">
+                                    <img src="assets/img/default-avatar.png" alt="${user.username}" class="user-card-avatar">
+                                    <div class="user-card-info">
+                                        <h3>${this.escapeHtml(user.username)}</h3>
+                                        <p>${this.escapeHtml(user.email)}</p>
+                                    </div>
+                                </div>
+                                <div class="user-card-stats">
+                                    <div class="user-card-stat">
+                                        <span>${stats.posts}</span>
+                                        <small>Posts</small>
+                                    </div>
+                                    <div class="user-card-stat">
+                                        <span>${stats.followers}</span>
+                                        <small>Followers</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } catch (error) {
+                        console.error('Error loading stats for', user.username, error);
+                        return '';
+                    }
+                })).then(cards => cards.join(''));
+            } else {
+                container.innerHTML = '<p class="no-results-message">Failed to load following list.</p>';
+            }
+            
+        } catch (error) {
+            console.error('Load following error:', error);
+            container.innerHTML = '<p class="no-results-message">Error loading following list.</p>';
         }
-        
-        // Get user details
-        const users = window.authManager ? window.authManager.getUsers() : [];
-        const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
-        
-        container.innerHTML = following.map(username => {
-            const user = users.find(u => u.username === username);
-            if (!user) return '';
-            
-            const userPosts = posts.filter(p => p.author === username);
-            const followersData = JSON.parse(localStorage.getItem(this.followersKey)) || {};
-            const followers = followersData[username] || [];
-            
-            return `
-                <div class="user-card" data-username="${username}">
-                    <div class="user-card-header">
-                        <img src="assets/img/default-avatar.png" alt="${username}" class="user-card-avatar">
-                        <div class="user-card-info">
-                            <h3>${this.escapeHtml(username)}</h3>
-                            <p>${this.escapeHtml(user.email)}</p>
-                        </div>
-                    </div>
-                    <div class="user-card-stats">
-                        <div class="user-card-stat">
-                            <span>${userPosts.length}</span>
-                            <small>Posts</small>
-                        </div>
-                        <div class="user-card-stat">
-                            <span>${followers.length}</span>
-                            <small>Followers</small>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
     }
 
     /**
-     * Load list of users following current profile user
+     * Load list of users following current profile user using AJAX
+     * Sends GET request to /M01039337/users/:username/followers
      */
-    loadFollowers() {
-        const followersData = JSON.parse(localStorage.getItem(this.followersKey)) || {};
-        const followers = followersData[this.currentProfileUser] || [];
-        
+    async loadFollowers() {
         const container = document.getElementById('followers-list');
         
         if (!container) return;
         
-        if (followers.length === 0) {
-            container.innerHTML = '<p class="no-results-message">No followers yet.</p>';
-            return;
+        try {
+            const response = await fetch(`${this.baseURL}/users/${this.currentProfileUser}/followers`, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (data.followers.length === 0) {
+                    container.innerHTML = '<p class="no-results-message">No followers yet.</p>';
+                    return;
+                }
+                
+                // Get stats for each user
+                container.innerHTML = await Promise.all(data.followers.map(async user => {
+                    try {
+                        const statsResponse = await fetch(`${this.baseURL}/users/${user.username}/stats`, {
+                            method: 'GET',
+                            credentials: 'same-origin'
+                        });
+                        const statsData = await statsResponse.json();
+                        const stats = statsData.success ? statsData.stats : { posts: 0, followers: 0 };
+                        
+                        return `
+                            <div class="user-card" data-username="${user.username}">
+                                <div class="user-card-header">
+                                    <img src="assets/img/default-avatar.png" alt="${user.username}" class="user-card-avatar">
+                                    <div class="user-card-info">
+                                        <h3>${this.escapeHtml(user.username)}</h3>
+                                        <p>${this.escapeHtml(user.email)}</p>
+                                    </div>
+                                </div>
+                                <div class="user-card-stats">
+                                    <div class="user-card-stat">
+                                        <span>${stats.posts}</span>
+                                        <small>Posts</small>
+                                    </div>
+                                    <div class="user-card-stat">
+                                        <span>${stats.followers}</span>
+                                        <small>Followers</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } catch (error) {
+                        console.error('Error loading stats for', user.username, error);
+                        return '';
+                    }
+                })).then(cards => cards.join(''));
+            } else {
+                container.innerHTML = '<p class="no-results-message">Failed to load followers list.</p>';
+            }
+            
+        } catch (error) {
+            console.error('Load followers error:', error);
+            container.innerHTML = '<p class="no-results-message">Error loading followers list.</p>';
         }
-        
-        // Get user details
-        const users = window.authManager ? window.authManager.getUsers() : [];
-        const posts = JSON.parse(localStorage.getItem(this.postsKey)) || [];
-        
-        container.innerHTML = followers.map(username => {
-            const user = users.find(u => u.username === username);
-            if (!user) return '';
-            
-            const userPosts = posts.filter(p => p.author === username);
-            const userFollowers = followersData[username] || [];
-            
-            return `
-                <div class="user-card" data-username="${username}">
-                    <div class="user-card-header">
-                        <img src="assets/img/default-avatar.png" alt="${username}" class="user-card-avatar">
-                        <div class="user-card-info">
-                            <h3>${this.escapeHtml(username)}</h3>
-                            <p>${this.escapeHtml(user.email)}</p>
-                        </div>
-                    </div>
-                    <div class="user-card-stats">
-                        <div class="user-card-stat">
-                            <span>${userPosts.length}</span>
-                            <small>Posts</small>
-                        </div>
-                        <div class="user-card-stat">
-                            <span>${userFollowers.length}</span>
-                            <small>Followers</small>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
     }
 
     /**

@@ -1,6 +1,10 @@
 // Account Recovery Manager class to handle account recovery functionality
 class RecoveryManager {
     constructor() {
+        // Base URL for API calls with Student ID
+        const STUDENT_ID = 'M01039337';
+        this.baseURL = `/${STUDENT_ID}`;
+
         this.recoverForm = document.getElementById('recoverForm');
         this.messageLabel = document.getElementById('recover-messageLabel');
         this.redirectDelay = 2000;

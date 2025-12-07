@@ -1,6 +1,11 @@
-// Creating Login Manager class
+// Login Manager class
+// Handles user login functionality with AJAX calls to backend
 class LoginManager {
     constructor() {
+        // Base URL for API calls with Student ID
+        const STUDENT_ID = 'M01039337';
+        this.baseURL = `/${STUDENT_ID}`;
+        
         this.loginForm = document.getElementById('loginForm');
         this.messageLabel = document.getElementById('login-messageLabel');
         this.redirectDelay = 1500;
@@ -8,14 +13,20 @@ class LoginManager {
         this.init();
     }
 
-    // Initialise login manager and set up event listeners
+    /**
+     * Initialise login manager and set up event listeners
+     */
     init() {
         if (this.loginForm) {
             this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
         }
     }
 
-    // Displaying message to user
+    /**
+     * Display message to user
+     * @param {string} message - Message to display
+     * @param {boolean} isSuccess - Whether message is a success message
+     */
     displayMessage(message, isSuccess = false) {
         if (this.messageLabel) {
             this.messageLabel.textContent = message;
@@ -23,26 +34,25 @@ class LoginManager {
         }
     }
 
-    // Clearing any existing messages
+    /**
+     * Clear any existing messages
+     */
     clearMessage() {
         if (this.messageLabel) {
             this.messageLabel.textContent = '';
         }
     }
 
-    // Validating user credential
-    validateCredentials(username, password) {
-        const users = window.authManager ? window.authManager.getUsers() : [];
-        return users.find(u => u.username === username && u.password === password);
-    }
-
-    // Handling successful login
+    /**
+     * Handle successful login
+     * @param {string} username - Username of logged-in user
+     */
     handleSuccessfulLogin(username) {
         this.displayMessage('Login successful! Redirecting...', true);
         
-        // Store logged-in user using authManager
+        // Update UI using authManager
         if (window.authManager) {
-            window.authManager.setLoggedInUser(username);
+            window.authManager.updateUIForLoggedInUser(username);
         }
         
         // Redirect to home page after delay
@@ -54,13 +64,20 @@ class LoginManager {
         }, this.redirectDelay);
     }
 
-    // Handling failed login
-    handleFailedLogin() {
-        this.displayMessage('Invalid username or password. Please try again.');
+    /**
+     * Handle failed login
+     * @param {string} message - Error message to display
+     */
+    handleFailedLogin(message) {
+        this.displayMessage(message || 'Invalid username or password. Please try again.');
     }
 
-    // Handle login form submission
-    handleLogin(e) {
+    /**
+     * Handle login form submission using AJAX
+     * Sends POST request to /M01039337/login
+     * @param {Event} e - Form submit event
+     */
+    async handleLogin(e) {
         e.preventDefault();
         
         // Get form input values and trim whitespace
@@ -75,13 +92,36 @@ class LoginManager {
             return;
         }
         
-        // Validate credentials
-        const user = this.validateCredentials(username, password);
-        
-        if (user) {
-            this.handleSuccessfulLogin(username);
-        } else {
-            this.handleFailedLogin();
+        try {
+            // Send POST request to /M01039337/login with credentials
+            const response = await fetch(`${this.baseURL}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin', // Include session cookie
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            });
+            
+            // Parse JSON response
+            const data = await response.json();
+            
+            // Handle response based on success status
+            if (data.success) {
+                // Login successful
+                this.handleSuccessfulLogin(data.username);
+            } else {
+                // Login failed - display error message
+                this.handleFailedLogin(data.message);
+            }
+            
+        } catch (error) {
+            // Handle network or parsing errors
+            console.error('Login error:', error);
+            this.displayMessage('An error occurred during login. Please try again.');
         }
     }
 }

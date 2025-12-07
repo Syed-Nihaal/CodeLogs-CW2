@@ -7,8 +7,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node public/server.js",
-    "setup_db": "node public/setup_db.js",
+    "start": "npm run setup_db && node server.js",
+    "setup_db": "node setup_db.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

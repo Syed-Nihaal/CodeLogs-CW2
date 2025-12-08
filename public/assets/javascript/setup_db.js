@@ -28,23 +28,7 @@ async function setupDatabase() {
         await contentsCollection.createIndex({ author: 1 });
         await contentsCollection.createIndex({ authorId: 1 });
         await contentsCollection.createIndex({ createdAt: -1 });
-        
-        // Drop old text indexes if they exist
-        try {
-            await contentsCollection.dropIndex('title_text_description_text');
-        } catch (e) {
-            // Index doesn't exist, that's fine
-        }
-        try {
-            await contentsCollection.dropIndex('title_text_description_text_language_text');
-        } catch (e) {
-            // Index doesn't exist, that's fine
-        }
-        
-        // Create text index on title and description only
-        await contentsCollection.createIndex({ title: 'text', description: 'text' });
-        // Add regular index for programmingLanguage field
-        await contentsCollection.createIndex({ programmingLanguage: 1 });
+        await contentsCollection.createIndex({ title: 'text', description: 'text', language: 'text' });
         console.log('Contents collection indexes created');
         
         // Set follows collection index
@@ -74,7 +58,7 @@ async function setupDatabase() {
     } finally {
         // Close connection
         await client.close();
-        console.log('\n Database connection closed');
+        console.log('\n✓ Database connection closed');
     }
 }
 

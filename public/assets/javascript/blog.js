@@ -15,10 +15,42 @@ class BlogManager {
      */
     init() {
         this.setupEventListeners();
-        this.showPage('home');
+        
+        // CHANGED: Check URL on load to show correct page
+        this.handleInitialRoute();
+        
+        // CHANGED: Listen for browser back/forward buttons
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.page) {
+                this.showPage(e.state.page, false); // false = don't push to history
+            } else {
+                this.showPage('home', false);
+            }
+        });
         
         // Check if user is logged in and load appropriate content
         this.loadInitialContent();
+    }
+    
+    /**
+     * CHANGED: Handle initial route from URL
+     */
+    handleInitialRoute() {
+        const path = window.location.pathname;
+        const pathParts = path.split('/').filter(p => p);
+        
+        // If path is like /M01039337/profile, show profile page
+        if (pathParts.length >= 2) {
+            const page = pathParts[1];
+            const validPages = ['home', 'login', 'register', 'recover', 'posts', 'create', 'profile'];
+            if (validPages.includes(page)) {
+                this.showPage(page, false); // false = don't push to history on initial load
+                return;
+            }
+        }
+        
+        // Default to home page
+        this.showPage('home', false);
     }
 
     /**
@@ -40,7 +72,7 @@ class BlogManager {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const page = e.currentTarget.getAttribute('data-page');
-                this.showPage(page);
+                this.showPage(page); // CHANGED: Will now update URL
             });
         });
 
@@ -53,9 +85,11 @@ class BlogManager {
 
     /**
      * Show selected page and hide other pages
+     * CHANGED: Added pushState parameter to update URL
      * @param {string} page - Page to show
+     * @param {boolean} pushState - Whether to push state to browser history (default: true)
      */
-    async showPage(page) {
+    async showPage(page, pushState = true) {
         // Hide all pages
         document.querySelectorAll('.page-content').forEach(el => {
             el.classList.add('hidden');
@@ -77,6 +111,12 @@ class BlogManager {
         });
         
         this.currentPage = page;
+        
+        // CHANGED: Update URL in address bar
+        if (pushState) {
+            const newUrl = `${this.baseURL}/${page}`;
+            window.history.pushState({ page: page }, '', newUrl);
+        }
         
         // Load specific content for pages
         if (page === 'posts') {

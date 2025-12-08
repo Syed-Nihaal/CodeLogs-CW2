@@ -4,7 +4,6 @@ import { fileURLToPath } from 'url';
 import express from 'express';
 import bodyParser from 'body-parser';
 import expressSession from 'express-session';
-import bcrypt from 'bcrypt';
 import { connectDB, getDB } from './connect_db.js';
 import { ObjectId } from 'mongodb';
 
@@ -67,6 +66,11 @@ function calculateAge(dob) {
 // Redirect root to student ID path
 app.get('/', (req, res) => {
     res.redirect(`/${STUDENT_ID}/`);
+});
+
+// Get test route for server
+app.get(`/`, (req, res) => {
+    res.send('CodeLogs Express server is running on port 8080.');
 });
 
 // Get test route for verifying Student ID path
@@ -144,15 +148,12 @@ app.post(`/${STUDENT_ID}/users`, async (req, res) => {
             });
         }
         
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-        
         // Create new user object
         const newUser = {
             username: username,
             email: email,
             dob: dob,
-            password: hashedPassword,
+            password: password, // NOTE: In production, hash this password using bcrypt!
             createdAt: new Date()
         };
         
@@ -244,20 +245,11 @@ app.post(`/${STUDENT_ID}/login`, async (req, res) => {
         
         // Find user in database
         const user = await usersCollection.findOne({
-            username: username
+            username: username,
+            password: password
         });
         
         if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid username or password.'
-            });
-        }
-        
-        // Compare passwords using bcrypt
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        
-        if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid username or password.'
@@ -313,13 +305,13 @@ app.post(`/${STUDENT_ID}/contents`, async (req, res) => {
             });
         }
         
-        const { title, description, code, programmingLanguage } = req.body;
+        const { title, description, code, language } = req.body;
         
         // Validate required fields
-        if (!title || !code || !programmingLanguage) {
+        if (!title || !code || !language) {
             return res.status(400).json({
                 success: false,
-                message: 'Title, code, and programmingLanguage are required fields.'
+                message: 'Title, code, and language are required fields.'
             });
         }
         
@@ -332,7 +324,7 @@ app.post(`/${STUDENT_ID}/contents`, async (req, res) => {
             title: title,
             description: description || '',
             code: code,
-            programmingLanguage: programmingLanguage,
+            language: language,
             author: req.session.username,
             authorId: new ObjectId(req.session.userId),
             createdAt: new Date()
@@ -367,12 +359,12 @@ app.get(`/${STUDENT_ID}/contents`, async (req, res) => {
         const db = getDB();
         const contentsCollection = db.collection('contents');
         
-        // Search for contents matching query in title, description, or programmingLanguage (case-insensitive)
+        // Search for contents matching query in title, description, or language (case-insensitive)
         const contents = await contentsCollection.find({
             $or: [
                 { title: { $regex: searchQuery, $options: 'i' } },
                 { description: { $regex: searchQuery, $options: 'i' } },
-                { programmingLanguage: { $regex: searchQuery, $options: 'i' } }
+                { language: { $regex: searchQuery, $options: 'i' } }
             ]
         }).sort({ createdAt: -1 }).toArray();
         

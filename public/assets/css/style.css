@@ -7,28 +7,20 @@ body, h1, h2, p {
 /* Global styles */
 body {
     font-family: Arial, sans-serif;
-    background: 
-        linear-gradient(rgba(20, 25, 35, 0.85), rgba(20, 25, 35, 0.85)),
-        url('../img/background.gif') center/cover fixed;
+    /* Solid background colour for body - no background image here */
+    background-color: rgb(10, 13, 18);
     color: rgba(255,255,255,0.95);
     min-height: 100vh;
     position: relative;
 }
 
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(20, 25, 35, 0.7);
-    z-index: -1;
-}
-
 /* Header styles */
 .header-container {
     padding: 1rem 2rem;
+    /* Solid background for header area - no GIF in navbar */
+    background-color: rgb(10, 13, 18);
+    position: relative;
+    z-index: 10;
 }
 
 .header-container nav {
@@ -132,6 +124,10 @@ hr {
     margin: 0;
     border: none;
     border-top: 1px solid rgb(0, 200, 200);
+    /* Solid background for hr - no GIF in navbar area */
+    background-color: rgb(20, 25, 35);
+    position: relative;
+    z-index: 10;
 }
 
 /* Form styles */
@@ -139,7 +135,7 @@ hr {
   max-width: 400px;
   margin: 3rem auto;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.8);
   border-radius: 8px;
   color: rgba(255,255,255,0.95);
   display: flex;
@@ -214,11 +210,29 @@ hr {
   text-decoration: underline;
 }
 
-/* Additional styles for the code blog */
+/* Content area with repeating background GIF starting after navbar HR */
 .content-area {
     padding: 2rem;
-    max-width: 1200px;
+    max-width: auto;
     margin: 0 auto;
+    min-height: calc(100vh - 120px);
+    /* Repeating background GIF with overlays - starts here, after the navbar */
+    background: 
+        linear-gradient(rgba(20, 25, 35, 0.50), rgba(20, 25, 35, 0.50)),
+        url('../img/background.gif') repeat;
+    position: relative;
+}
+
+/* Additional overlay for content area with repeating pattern */
+.content-area::before {
+    content: '';
+    position: fixed;
+    top: 120px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 120px);
+    background: rgba(20, 25, 35, 0.7);
+    z-index: -1;
 }
 
 .hidden {
@@ -229,6 +243,7 @@ hr {
     border-bottom: none;
 }
 
+/* Blog posts in responsive grid layout */
 .blog-posts {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -236,8 +251,22 @@ hr {
     margin-top: 2rem;
 }
 
+/* Recent posts - single column centered layout */
+#recent-posts {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+#recent-posts .blog-card {
+    width: 100%;
+    max-width: 600px;
+}
+
+/* Blog card styling */
 .blog-card {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.8);
     border-radius: 10px;
     padding: 1.5rem;
     border: 2px solid rgba(0, 200, 200, 0.2);
@@ -440,13 +469,14 @@ hr {
     min-height: 300px;
 }
 
-/* User List (for following/followers) */
+/* User list in responsive grid layout */
 .user-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 1.5rem;
 }
 
+/* User card styling */
 .user-card {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 10px;

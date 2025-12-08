@@ -25,9 +25,12 @@ class ProfileManager {
      * Set up profile-related event listeners
      */
     setupEventListeners() {
-        // Tab switching
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', (e) => this.handleTabSwitch(e));
+        // Tab switching - use event delegation for reliability
+        document.addEventListener('click', (e) => {
+            const tabButton = e.target.closest('.tab-button');
+            if (tabButton) {
+                this.handleTabSwitch(e);
+            }
         });
 
         // Follow button
@@ -40,9 +43,44 @@ class ProfileManager {
         document.addEventListener('click', (e) => {
             const userCard = e.target.closest('.user-card');
             if (userCard && userCard.dataset.username) {
+                e.preventDefault();
                 this.loadProfile(userCard.dataset.username);
             }
         });
+
+        // NEW: Handle profile icon button in navigation
+        document.addEventListener('click', (e) => {
+            // Check if clicked on profile icon or its parent link
+            const profileIcon = e.target.closest('[data-page="profile"]');
+            if (profileIcon) {
+                e.preventDefault();
+                this.handleProfileIconClick();
+            }
+        });
+    }
+
+    /**
+     * NEW: Handle profile icon button click
+     */
+    async handleProfileIconClick() {
+        try {
+            // First check if user is logged in
+            const loggedInUser = window.authManager ? await window.authManager.getCurrentUser() : null;
+            
+            if (!loggedInUser) {
+                // If not logged in, redirect to login page
+                if (window.blogManager) {
+                    window.blogManager.showPage('login');
+                }
+                alert('Please log in to view your profile');
+                return;
+            }
+            
+            // Load current user's profile
+            await this.loadProfile(loggedInUser);
+        } catch (error) {
+            console.error('Profile icon click error:', error);
+        }
     }
 
     /**
@@ -50,13 +88,17 @@ class ProfileManager {
      * @param {Event} e - Click event from tab button
      */
     handleTabSwitch(e) {
-        const targetTab = e.target.dataset.tab;
+        const tabButton = e.target.closest('.tab-button');
+        if (!tabButton) return;
+        
+        const targetTab = tabButton.dataset.tab;
+        if (!targetTab) return;
         
         // Update button states
         document.querySelectorAll('.tab-button').forEach(btn => {
             btn.classList.remove('active');
         });
-        e.target.classList.add('active');
+        tabButton.classList.add('active');
         
         // Hide all tab contents
         document.querySelectorAll('.tab-content').forEach(content => {
@@ -322,7 +364,7 @@ class ProfileManager {
                         <h3 class="blog-title">${this.escapeHtml(post.title)}</h3>
                         ${post.description ? `<p>${this.escapeHtml(post.description)}</p>` : ''}
                         <div class="blog-code">${this.escapeHtml(post.code)}</div>
-                        <p><strong>Language:</strong> ${this.escapeHtml(post.language)}</p>
+                        <p><strong>Language:</strong> ${this.escapeHtml(post.programmingLanguage || post.language || '')}</p>
                         <p class="blog-author">Posted on ${new Date(post.createdAt).toLocaleDateString()}</p>
                     </div>
                 `).join('');

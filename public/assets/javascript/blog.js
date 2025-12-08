@@ -2,10 +2,12 @@
 // Handles blog post creation, viewing, and navigation with AJAX calls to backend
 class BlogManager {
     constructor() {
-        // Base URL for API calls - REPLACE WITH YOUR STUDENT ID
+        // Base URL for API calls
         this.baseURL = '/M01039337';
         
         this.currentPage = 'home';
+        this.currentPostsPage = 1; // Current page number for posts pagination
+        this.currentLanguageFilter = ''; // Current language filter
         
         this.init();
     }
@@ -16,13 +18,13 @@ class BlogManager {
     init() {
         this.setupEventListeners();
         
-        // CHANGED: Check URL on load to show correct page
+        // Check URL on load to show correct page
         this.handleInitialRoute();
         
-        // CHANGED: Listen for browser back/forward buttons
+        // Listen for browser back/forward buttons
         window.addEventListener('popstate', (e) => {
             if (e.state && e.state.page) {
-                this.showPage(e.state.page, false); // false = don't push to history
+                this.showPage(e.state.page, false);
             } else {
                 this.showPage('home', false);
             }
@@ -33,7 +35,7 @@ class BlogManager {
     }
     
     /**
-     * CHANGED: Handle initial route from URL
+     * Handle initial route from URL
      */
     handleInitialRoute() {
         const path = window.location.pathname;
@@ -44,7 +46,7 @@ class BlogManager {
             const page = pathParts[1];
             const validPages = ['home', 'login', 'register', 'recover', 'posts', 'create', 'profile'];
             if (validPages.includes(page)) {
-                this.showPage(page, false); // false = don't push to history on initial load
+                this.showPage(page, false);
                 return;
             }
         }
@@ -67,36 +69,56 @@ class BlogManager {
      * Set up event listeners
      */
     setupEventListeners() {
-        // Navigation links - only handle links with .nav-link class that have data-page
-        document.querySelectorAll('.nav-link[data-page]').forEach(link => {
-            link.addEventListener('click', (e) => {
+        // Navigation links - use event delegation for reliability
+        document.addEventListener('click', (e) => {
+            // Handle clicks on nav-link or elements inside nav-link
+            const link = e.target.closest('.nav-link[data-page]');
+            if (link && !link.classList.contains('external-link')) {
                 e.preventDefault();
-                const page = e.currentTarget.getAttribute('data-page');
-                this.showPage(page); // CHANGED: Will now update URL
-            });
-        });
+                e.stopImmediatePropagation();
+                const page = link.getAttribute('data-page');
+                console.log('Navigation clicked:', page); // Debug log
+                this.showPage(page);
+                return false;
+            }
+        }); // Use bubbling phase but with stopImmediatePropagation
 
-        // Create post form
+        // Create post form with file upload support
         const createPostForm = document.getElementById('createPostForm');
         if (createPostForm) {
             createPostForm.addEventListener('submit', (e) => this.handleCreatePost(e));
+        }
+        
+        // Language filter dropdown
+        const languageFilter = document.getElementById('language-filter');
+        if (languageFilter) {
+            languageFilter.addEventListener('change', (e) => {
+                this.currentLanguageFilter = e.target.value;
+                this.currentPostsPage = 1; // Reset to first page
+                this.loadAllPosts();
+            });
         }
     }
 
     /**
      * Show selected page and hide other pages
-     * CHANGED: Added pushState parameter to update URL
      * @param {string} page - Page to show
-     * @param {boolean} pushState - Whether to push state to browser history (default: true)
+     * @param {boolean} pushState - Whether to push state to browser history
      */
     async showPage(page, pushState = true) {
+        console.log('showPage called with:', page);
+        
         // Hide all pages
-        document.querySelectorAll('.page-content').forEach(el => {
+        const allPages = document.querySelectorAll('.page-content');
+        console.log('Found page elements:', allPages.length);
+        allPages.forEach(el => {
+            console.log('Hiding page:', el.id);
             el.classList.add('hidden');
         });
         
         // Show selected page
         const selectedPage = document.getElementById(`${page}-page`);
+        console.log('Selected page element:', selectedPage ? selectedPage.id : 'NOT FOUND');
         if (selectedPage) {
             selectedPage.classList.remove('hidden');
         }
@@ -112,7 +134,7 @@ class BlogManager {
         
         this.currentPage = page;
         
-        // CHANGED: Update URL in address bar
+        // Update URL in address bar
         if (pushState) {
             const newUrl = `${this.baseURL}/${page}`;
             window.history.pushState({ page: page }, '', newUrl);
@@ -120,6 +142,8 @@ class BlogManager {
         
         // Load specific content for pages
         if (page === 'posts') {
+            this.currentPostsPage = 1; // Reset to first page
+            this.currentLanguageFilter = ''; // Reset filter
             this.loadAllPosts();
         } else if (page === 'home') {
             // Check if user is logged in and load appropriate content
@@ -137,7 +161,7 @@ class BlogManager {
     }
 
     /**
-     * Handle create post form submission using AJAX
+     * Handle create post form submission using AJAX with file upload
      * Sends POST request to /M01039337/contents
      * @param {Event} e - Form submit event
      */
@@ -161,33 +185,38 @@ class BlogManager {
         const title = document.getElementById('post-title').value.trim();
         const description = document.getElementById('post-description').value.trim();
         const code = document.getElementById('post-code').value.trim();
-        const language = document.getElementById('post-language').value.trim();
+        const programmingLanguage = document.getElementById('post-language').value.trim();
+        const fileInput = document.getElementById('post-file');
         const messageLabel = document.getElementById('create-messageLabel');
         
         // Clear previous messages
         messageLabel.textContent = '';
         
         // Validate form
-        if (!title || !code || !language) {
+        if (!title || !code || !programmingLanguage) {
             messageLabel.textContent = 'Please fill in all required fields.';
             messageLabel.style.color = 'red';
             return;
         }
         
         try {
-            // Send POST request to /M01039337/contents
+            // Create FormData object for file upload
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('code', code);
+            formData.append('programmingLanguage', programmingLanguage);
+            
+            // Add file if selected
+            if (fileInput.files.length > 0) {
+                formData.append('file', fileInput.files[0]);
+            }
+            
+            // Send POST request to /M01039337/contents with FormData
             const response = await fetch(`${this.baseURL}/contents`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin', // Include session cookie
-                body: JSON.stringify({
-                    title: title,
-                    description: description,
-                    code: code,
-                    language: language
-                })
+                credentials: 'same-origin',
+                body: formData // Don't set Content-Type header - browser will set it automatically with boundary
             });
             
             // Parse JSON response
@@ -219,13 +248,13 @@ class BlogManager {
     }
 
     /**
-     * Load recent posts (first 6 posts) using AJAX
+     * Load recent posts (first 10 posts) using AJAX with pagination
      * Sends GET request to /M01039337/contents
      */
     async loadRecentPosts() {
         try {
-            // Send GET request to /M01039337/contents (get all, then slice)
-            const response = await fetch(`${this.baseURL}/contents`, {
+            // Send GET request to /M01039337/contents with pagination (limit 10 for recent)
+            const response = await fetch(`${this.baseURL}/contents?page=1&limit=10`, {
                 method: 'GET',
                 credentials: 'same-origin'
             });
@@ -234,9 +263,7 @@ class BlogManager {
             const data = await response.json();
             
             if (data.success) {
-                // Get first 6 posts
-                const recentPosts = data.contents.slice(0, 6);
-                this.renderPosts(recentPosts, 'recent-posts');
+                this.renderPosts(data.contents, 'recent-posts', false); // false = no pagination controls
             } else {
                 console.error('Failed to load recent posts:', data.message);
             }
@@ -247,13 +274,21 @@ class BlogManager {
     }
 
     /**
-     * Load all posts using AJAX
+     * Load all posts using AJAX with pagination and language filter
      * Sends GET request to /M01039337/contents
      */
     async loadAllPosts() {
         try {
-            // Send GET request to /M01039337/contents
-            const response = await fetch(`${this.baseURL}/contents`, {
+            // Build query parameters
+            let queryParams = `page=${this.currentPostsPage}&limit=20`;
+            
+            // Add language filter if selected
+            if (this.currentLanguageFilter) {
+                queryParams += `&language=${encodeURIComponent(this.currentLanguageFilter)}`;
+            }
+            
+            // Send GET request to /M01039337/contents with pagination
+            const response = await fetch(`${this.baseURL}/contents?${queryParams}`, {
                 method: 'GET',
                 credentials: 'same-origin'
             });
@@ -262,7 +297,7 @@ class BlogManager {
             const data = await response.json();
             
             if (data.success) {
-                this.renderPosts(data.contents, 'all-posts');
+                this.renderPosts(data.contents, 'all-posts', true, data.page, data.totalPages);
             } else {
                 console.error('Failed to load all posts:', data.message);
             }
@@ -273,11 +308,14 @@ class BlogManager {
     }
 
     /**
-     * Render posts to specified container
+     * Render posts to specified container with optional pagination
      * @param {Array} posts - Array of post objects
      * @param {string} containerId - ID of container element
+     * @param {boolean} showPagination - Whether to show pagination controls
+     * @param {number} currentPage - Current page number
+     * @param {number} totalPages - Total number of pages
      */
-    renderPosts(posts, containerId) {
+    renderPosts(posts, containerId, showPagination = false, currentPage = 1, totalPages = 1) {
         const container = document.getElementById(containerId);
         
         if (!container) {
@@ -285,19 +323,73 @@ class BlogManager {
         }
         
         if (posts.length === 0) {
-            container.innerHTML = '<p class="no-scores-message">No posts available yet.</p>';
+            container.innerHTML = '<p class="no-results-message">No posts available yet.</p>';
             return;
         }
         
-        container.innerHTML = posts.map(post => `
+        // Render posts
+        let html = posts.map(post => `
             <div class="blog-card">
                 <h3 class="blog-title">${this.escapeHtml(post.title)}</h3>
                 ${post.description ? `<p>${this.escapeHtml(post.description)}</p>` : ''}
                 <div class="blog-code">${this.escapeHtml(post.code)}</div>
-                <p><strong>Language:</strong> ${this.escapeHtml(post.language)}</p>
+                <p><strong>Language:</strong> ${this.escapeHtml(post.programmingLanguage || post.language || '')}</p>
+                ${post.fileUrl ? `<p><strong>Attachment:</strong> <a href="${post.fileUrl}" target="_blank" class="file-link">Download File</a></p>` : ''}
                 <p class="blog-author">By ${this.escapeHtml(post.author)} on ${new Date(post.createdAt).toLocaleDateString()}</p>
             </div>
         `).join('');
+        
+        // Add pagination controls if needed
+        if (showPagination && totalPages > 1) {
+            html += this.renderPaginationControls(currentPage, totalPages);
+        }
+        
+        container.innerHTML = html;
+        
+        // Add event listeners to pagination buttons
+        if (showPagination && totalPages > 1) {
+            this.setupPaginationListeners();
+        }
+    }
+
+    /**
+     * Render pagination controls
+     * @param {number} currentPage - Current page number
+     * @param {number} totalPages - Total number of pages
+     * @returns {string} HTML for pagination controls
+     */
+    renderPaginationControls(currentPage, totalPages) {
+        let html = '<div class="pagination">';
+        
+        // Previous button
+        if (currentPage > 1) {
+            html += `<button class="pagination-btn" data-page="${currentPage - 1}">Previous</button>`;
+        }
+        
+        // Page numbers
+        html += `<span class="pagination-info">Page ${currentPage} of ${totalPages}</span>`;
+        
+        // Next button
+        if (currentPage < totalPages) {
+            html += `<button class="pagination-btn" data-page="${currentPage + 1}">Next</button>`;
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Set up event listeners for pagination buttons
+     */
+    setupPaginationListeners() {
+        document.querySelectorAll('.pagination-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.currentPostsPage = parseInt(e.target.getAttribute('data-page'));
+                this.loadAllPosts();
+                // Scroll to top of posts
+                document.getElementById('all-posts').scrollIntoView({ behavior: 'smooth' });
+            });
+        });
     }
 
     /**

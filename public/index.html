@@ -27,6 +27,14 @@
                     <a href="#" class="nav-link" data-page="profile">
                         <img src="assets/img/profile.png" alt="Profile" class="nav-icons">
                     </a>
+                    <!-- Search box -->
+                    <div class="search-container">
+                        <button id="searchToggle" class="search-toggle" title="Search users">
+                            <img src="assets/img/find.png" alt="Search" class="nav-icons">
+                        </button>
+                        <input type="text" id="userSearchInput" class="search-input hidden" placeholder="Search users...">
+                        <div id="searchResults" class="search-results hidden"></div>
+                    </div>
                     <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="external-link">
                         <img src="assets/img/github.png" alt="GitHub" class="nav-icons">
                     </a>
@@ -72,7 +80,7 @@
                 <div id="home-user" class="hidden">
                     <h2 style="text-align: center;">Recent Code Posts</h2>
                     <div class="blog-posts" id="recent-posts">
-                        <!-- Recent posts will be loaded here -->
+                        <!-- Recent posts will be loaded here (10 posts) -->
                     </div>
                 </div>
             </div>
@@ -165,30 +173,53 @@
                 </div>
             </div>
 
-            <!-- Postboard Page -->
+            <!-- Postboard Page with Language Filter -->
             <div id="posts-page" class="page-content hidden">
                 <h2 style="text-align: center;">All Code Posts</h2>
+                
+                <!-- Language Filter -->
+                <div class="filter-container" style="text-align: center; margin: 2rem 0;">
+                    <label for="language-filter" style="margin-right: 1rem;">Filter by Language:</label>
+                    <select id="language-filter" class="language-filter-select">
+                        <option value="">All Languages</option>
+                        <option value="JavaScript">JavaScript</option>
+                        <option value="Python">Python</option>
+                        <option value="C">C</option>
+                        <option value="C++">C++</option>
+                        <option value="C#">C#</option>
+                        <option value="PHP">PHP</option>
+                        <option value="Go">Go</option>
+                        <option value="Rust">Rust</option>
+                        <option value="TypeScript">TypeScript</option>
+                        <option value="HTML">HTML</option>
+                        <option value="CSS">CSS</option>
+                        <option value="SQL">SQL</option>
+                        <option value="Shell">Shell/Bash</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
                 <div class="blog-posts" id="all-posts">
-                    <!-- All posts will be loaded here -->
+                    <!-- All posts will be loaded here (20 posts per page) -->
                 </div>
             </div>
 
-            <!-- Create Post Page -->
+            <!-- Create Post Page with File Upload -->
             <div id="create-page" class="page-content hidden">
                 <div class="create-post-form">
                     <h2 style="text-align: center;">Create New Post</h2>
                     <br>
-                    <form id="createPostForm">
-                        <label for="post-title">Title</label>
+                    <form id="createPostForm" enctype="multipart/form-data">
+                        <label for="post-title">Title *</label>
                         <input type="text" id="post-title" name="title" required>
                         
                         <label for="post-description">Description</label>
                         <textarea id="post-description" name="description" placeholder="Describe your code snippet..."></textarea>
                         
-                        <label for="post-code">Code</label>
+                        <label for="post-code">Code *</label>
                         <textarea id="post-code" name="code" placeholder="Paste your code here..." required></textarea>
                         
-                        <label for="post-language">Programming Language</label>
+                        <label for="post-language">Programming Language *</label>
                         <select id="post-language" name="language" required>
                             <option value="">Select a language...</option>
                             <option value="JavaScript">JavaScript</option>
@@ -206,6 +237,14 @@
                             <option value="Shell">Shell/Bash</option>
                             <option value="Other">Other</option>
                         </select>
+                        
+                        <!-- NEW: File upload input -->
+                        <label for="post-file">Attach File (optional)</label>
+                        <input type="file" id="post-file" name="file" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.doc,.docx,.zip">
+                        <p style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem;">
+                            Accepted formats: Images (JPG, PNG, GIF), Documents (PDF, TXT, DOC, DOCX), Archives (ZIP). Max 5MB.
+                        </p>
+                        
                         <button type="submit" class="button register-button">Publish Post</button>
                         <!-- Message label for displaying post status -->
                         <label id="create-messageLabel" style="display:block; margin-top:10px;"></label>
@@ -219,7 +258,7 @@
                     <!-- Profile Header -->
                     <div class="profile-header">
                         <div class="profile-avatar">
-                            <img src="assets/img/default-avatar.png" alt="Profile Avatar" id="profileAvatar">
+                            <img src="assets/img/profile.png" alt="Profile Avatar" id="profileAvatar">
                         </div>
                         <div class="profile-info">
                             <h2 id="profileUsername">Username</h2>
@@ -277,8 +316,8 @@
         </div>
 
         <!-- JavaScript files - load in correct order -->
-        <!-- CHANGED: Added profile.js which was missing -->
         <script src="assets/javascript/auth.js"></script>
+        <script src="assets/javascript/search.js"></script>
         <script src="assets/javascript/login.js"></script>
         <script src="assets/javascript/register.js"></script>
         <script src="assets/javascript/recover.js"></script>

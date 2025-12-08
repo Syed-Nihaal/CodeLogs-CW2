@@ -7,6 +7,8 @@ import expressSession from 'express-session';
 import bcrypt from 'bcrypt';
 import { connectDB, getDB } from './connect_db.js';
 import { ObjectId } from 'mongodb';
+import multer from 'multer';
+import fs from 'fs';
 
 // Get current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -17,8 +19,48 @@ const app = express();
 app.use(bodyParser.json());
 const PORT = 8080;
 
-// Path based on Student ID - REPLACE WITH YOUR ACTUAL STUDENT ID
+// Path based on Student ID
 const STUDENT_ID = 'M01039337';
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'public', 'assets', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('Created uploads directory at:', uploadsDir);
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        // Create unique filename with timestamp
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + '-' + file.originalname);
+    }
+});
+
+// File filter to validate file types
+const fileFilter = (req, file, cb) => {
+    // Accept images and common file types
+    const allowedTypes = /jpeg|jpg|png|gif|pdf|txt|doc|docx|zip/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+        return cb(null, true);
+    } else {
+        cb(new Error('Only images and common file types are allowed!'));
+    }
+};
+
+// Multer upload configuration
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: fileFilter
+});
 
 // Configuring session middleware
 app.use(expressSession({
@@ -42,7 +84,6 @@ connectDB().then(() => {
     console.error('Failed to connect to MongoDB:', error);
     process.exit(1);
 });
-
 
 // Validate email format
 function isValidEmail(email) {
@@ -528,7 +569,7 @@ app.delete(`/${STUDENT_ID}/follow`, async (req, res) => {
 });
 
 
-// Get route for feed
+// Get route for feed with pagination
 app.get(`/${STUDENT_ID}/feed`, async (req, res) => {
     try {
         // Check if user is logged in
@@ -538,6 +579,10 @@ app.get(`/${STUDENT_ID}/feed`, async (req, res) => {
                 message: 'Please login to view your feed.'
             });
         }
+        
+        const page = parseInt(req.query.page) || 1; // Default to page 1
+        const limit = parseInt(req.query.limit) || 20; // Default to 20 items per page
+        const skip = (page - 1) * limit;
         
         // Get database instance
         const db = getDB();
@@ -557,19 +602,36 @@ app.get(`/${STUDENT_ID}/feed`, async (req, res) => {
             return res.json({
                 success: true,
                 message: 'Your feed is empty. Follow users to see their posts.',
+                page: page,
+                limit: limit,
+                totalCount: 0,
+                totalPages: 0,
                 count: 0,
                 contents: []
             });
         }
         
-        // Get contents ONLY from followed users
+        // Get total count for pagination
+        const totalCount = await contentsCollection.countDocuments({
+            author: { $in: followedUsernames }
+        });
+        const totalPages = Math.ceil(totalCount / limit);
+        
+        // Get contents ONLY from followed users with pagination
         const contents = await contentsCollection.find({
             author: { $in: followedUsernames }
-        }).sort({ createdAt: -1 }).toArray();
+        }).sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .toArray();
         
         res.json({
             success: true,
             message: 'Feed retrieved successfully.',
+            page: page,
+            limit: limit,
+            totalCount: totalCount,
+            totalPages: totalPages,
             count: contents.length,
             contents: contents
         });
@@ -664,6 +726,7 @@ app.get(`/${STUDENT_ID}/users/:username/followers`, async (req, res) => {
         }).project({
             username: 1,
             email: 1,
+            profileImage: 1,
             _id: 1
         }).toArray();
         
@@ -715,6 +778,7 @@ app.get(`/${STUDENT_ID}/users/:username/following`, async (req, res) => {
         }).project({
             username: 1,
             email: 1,
+            profileImage: 1,
             _id: 1
         }).toArray();
         
@@ -734,10 +798,13 @@ app.get(`/${STUDENT_ID}/users/:username/following`, async (req, res) => {
     }
 });
 
-// Get route for user posts
+// Get route for user posts with pagination
 app.get(`/${STUDENT_ID}/users/:username/posts`, async (req, res) => {
     try {
         const username = req.params.username;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
         
         // Get database instance
         const db = getDB();
@@ -754,14 +821,25 @@ app.get(`/${STUDENT_ID}/users/:username/posts`, async (req, res) => {
             });
         }
         
-        // Get all posts by this user
+        // Get total count for pagination
+        const totalCount = await contentsCollection.countDocuments({ author: username });
+        const totalPages = Math.ceil(totalCount / limit);
+        
+        // Get all posts by this user with pagination
         const posts = await contentsCollection.find({
             author: username
-        }).sort({ createdAt: -1 }).toArray();
+        }).sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .toArray();
         
         res.json({
             success: true,
             username: username,
+            page: page,
+            limit: limit,
+            totalCount: totalCount,
+            totalPages: totalPages,
             count: posts.length,
             posts: posts
         });
@@ -819,9 +897,11 @@ app.get(`/${STUDENT_ID}/users/:username/profile`, async (req, res) => {
             profile: {
                 username: user.username,
                 email: user.email,
+                profileImage: user.profileImage,
                 createdAt: user.createdAt,
                 stats: {
                     posts: postsCount,
+                    likes: 0, // Placeholder for future likes feature
                     followers: followersCount,
                     following: followingCount
                 },
@@ -834,6 +914,51 @@ app.get(`/${STUDENT_ID}/users/:username/profile`, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Internal server error during profile retrieval.'
+        });
+    }
+});
+
+// NEW: Post route for uploading profile image
+app.post(`/${STUDENT_ID}/upload/profile-image`, upload.single('profileImage'), async (req, res) => {
+    try {
+        // Check if user is logged in
+        if (!req.session.userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Please login to upload profile image.'
+            });
+        }
+        
+        // Check if file was uploaded
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No file uploaded.'
+            });
+        }
+        
+        // Get database instance
+        const db = getDB();
+        const usersCollection = db.collection('users');
+        
+        // Update user's profile image
+        const imageUrl = `/assets/uploads/${req.file.filename}`;
+        await usersCollection.updateOne(
+            { _id: new ObjectId(req.session.userId) },
+            { $set: { profileImage: imageUrl } }
+        );
+        
+        res.json({
+            success: true,
+            message: 'Profile image uploaded successfully.',
+            imageUrl: imageUrl
+        });
+        
+    } catch (error) {
+        console.error('Profile image upload error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error during image upload.'
         });
     }
 });

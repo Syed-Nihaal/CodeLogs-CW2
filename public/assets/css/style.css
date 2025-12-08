@@ -97,6 +97,99 @@ body {
     transition: all 0.2s ease;
 }
 
+/* Search box styles */
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.search-toggle:hover {
+    transform: scale(1.1);
+}
+
+.search-input {
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    width: 200px;
+    transition: all 0.3s ease;
+}
+
+.search-input.hidden {
+    display: none;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: rgba(0, 200, 200, 0.6);
+    background-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 10px rgba(0, 200, 200, 0.3);
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: rgb(15, 20, 25);
+    border: 1px solid rgba(0, 200, 200, 0.3);
+    border-radius: 5px;
+    margin-top: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.search-results.hidden {
+    display: none;
+}
+
+.search-result-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.search-result-item:hover {
+    background-color: rgba(0, 200, 200, 0.2);
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-username {
+    font-weight: bold;
+    color: rgba(0, 200, 200, 0.9);
+}
+
+.search-result-email {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.25rem;
+}
+
 /* Index page specific styles */
 .index-content {
     display: flex;
@@ -354,7 +447,7 @@ hr {
     display: flex;
     gap: 2rem;
     padding: 2rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.50);
     border-radius: 10px;
     margin-bottom: 2rem;
 }
@@ -478,7 +571,7 @@ hr {
 
 /* User card styling */
 .user-card {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.50);
     border-radius: 10px;
     padding: 1.5rem;
     border: 2px solid rgba(0, 200, 200, 0.2);

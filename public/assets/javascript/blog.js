@@ -1,5 +1,5 @@
 // Blog Manager for Code Blog
-// Handles blog post creation, viewing, and navigation with AJAX calls to backend
+// Handles blog post creation, viewing, navigation, and GitHub Gists integration
 class BlogManager {
     constructor() {
         // Base URL for API calls
@@ -32,6 +32,9 @@ class BlogManager {
         
         // Check if user is logged in and load appropriate content
         this.loadInitialContent();
+        
+        // Set up file input display handler
+        this.setupFileInputHandler();
     }
     
     /**
@@ -77,11 +80,11 @@ class BlogManager {
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 const page = link.getAttribute('data-page');
-                console.log('Navigation clicked:', page); // Debug log
+                console.log('Navigation clicked:', page);
                 this.showPage(page);
                 return false;
             }
-        }); // Use bubbling phase but with stopImmediatePropagation
+        });
 
         // Create post form with file upload support
         const createPostForm = document.getElementById('createPostForm');
@@ -96,6 +99,36 @@ class BlogManager {
                 this.currentLanguageFilter = e.target.value;
                 this.currentPostsPage = 1; // Reset to first page
                 this.loadAllPosts();
+                // Load GitHub gists for selected language
+                if (e.target.value) {
+                    this.loadTrendingGists(e.target.value);
+                } else {
+                    this.loadTrendingGists('javascript'); // Default to JavaScript
+                }
+            });
+        }
+    }
+
+    /**
+     * Set up file input display handler
+     */
+    setupFileInputHandler() {
+        const fileInput = document.getElementById('post-file');
+        const fileName = document.getElementById('fileName');
+        const fileText = document.querySelector('.file-text');
+        
+        if (fileInput && fileName) {
+            fileInput.addEventListener('change', function(e) {
+                if (this.files && this.files.length > 0) {
+                    const file = this.files[0];
+                    fileName.textContent = file.name;
+                    fileName.classList.add('active');
+                    if (fileText) fileText.textContent = 'File selected:';
+                } else {
+                    fileName.textContent = '';
+                    fileName.classList.remove('active');
+                    if (fileText) fileText.textContent = 'Choose a file or drag here';
+                }
             });
         }
     }
@@ -145,6 +178,7 @@ class BlogManager {
             this.currentPostsPage = 1; // Reset to first page
             this.currentLanguageFilter = ''; // Reset filter
             this.loadAllPosts();
+            this.loadTrendingGists('javascript'); // Load GitHub gists
         } else if (page === 'home') {
             // Check if user is logged in and load appropriate content
             const user = window.authManager ? await window.authManager.getCurrentUser() : null;
@@ -155,7 +189,7 @@ class BlogManager {
             // Load logged-in user's profile
             const user = window.authManager ? await window.authManager.getCurrentUser() : null;
             if (window.profileManager) {
-                window.profileManager.loadProfile(user);
+                await window.profileManager.loadProfile(user);
             }
         }
     }
@@ -199,6 +233,18 @@ class BlogManager {
             return;
         }
         
+        // Validate file size if file is selected (max 5MB)
+        if (fileInput.files.length > 0) {
+            const fileSize = fileInput.files[0].size;
+            const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+            
+            if (fileSize > maxSize) {
+                messageLabel.textContent = 'File size must be less than 5MB.';
+                messageLabel.style.color = 'red';
+                return;
+            }
+        }
+        
         try {
             // Create FormData object for file upload
             const formData = new FormData();
@@ -212,6 +258,10 @@ class BlogManager {
                 formData.append('file', fileInput.files[0]);
             }
             
+            // Show uploading message
+            messageLabel.textContent = 'Uploading post...';
+            messageLabel.style.color = 'blue';
+            
             // Send POST request to /M01039337/contents with FormData
             const response = await fetch(`${this.baseURL}/contents`, {
                 method: 'POST',
@@ -224,13 +274,27 @@ class BlogManager {
             
             // Handle response
             if (data.success) {
-                // Show success message
-                messageLabel.textContent = 'Post created successfully!';
+                // Show success message with file upload status
+                let successMsg = 'Post created successfully!';
+                if (data.fileUploaded) {
+                    successMsg += ' File attached.';
+                }
+                messageLabel.textContent = successMsg;
                 messageLabel.style.color = 'green';
                 
                 // Clear form and redirect to home page after delay
                 setTimeout(() => {
                     document.getElementById('createPostForm').reset();
+                    // Reset file display
+                    const fileName = document.getElementById('fileName');
+                    const fileText = document.querySelector('.file-text');
+                    if (fileName) {
+                        fileName.textContent = '';
+                        fileName.classList.remove('active');
+                    }
+                    if (fileText) {
+                        fileText.textContent = 'Choose a file or drag here';
+                    }
                     this.showPage('home');
                 }, 1500);
             } else {
@@ -280,14 +344,14 @@ class BlogManager {
     async loadAllPosts() {
         try {
             // Build query parameters
-            let queryParams = `page=${this.currentPostsPage}&limit=20`;
+            let queryParams = `q=`;
             
             // Add language filter if selected
             if (this.currentLanguageFilter) {
-                queryParams += `&language=${encodeURIComponent(this.currentLanguageFilter)}`;
+                queryParams += encodeURIComponent(this.currentLanguageFilter);
             }
             
-            // Send GET request to /M01039337/contents with pagination
+            // Send GET request to /M01039337/contents with search query
             const response = await fetch(`${this.baseURL}/contents?${queryParams}`, {
                 method: 'GET',
                 credentials: 'same-origin'
@@ -297,7 +361,7 @@ class BlogManager {
             const data = await response.json();
             
             if (data.success) {
-                this.renderPosts(data.contents, 'all-posts', true, data.page, data.totalPages);
+                this.renderPosts(data.contents, 'all-posts', false);
             } else {
                 console.error('Failed to load all posts:', data.message);
             }
@@ -305,6 +369,123 @@ class BlogManager {
         } catch (error) {
             console.error('Error loading all posts:', error);
         }
+    }
+
+    /**
+     * Load trending gists from GitHub filtered by programming language (THIRD-PARTY DATA)
+     * @param {string} language - Programming language to filter by
+     */
+    async loadTrendingGists(language = 'javascript') {
+        try {
+            // Send GET request to server endpoint that fetches from GitHub
+            const response = await fetch(`${this.baseURL}/trending-gists?language=${encodeURIComponent(language)}`, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.gists && data.gists.length > 0) {
+                this.renderTrendingGists(data.gists, language);
+            } else {
+                this.renderNoGists(language);
+            }
+            
+        } catch (error) {
+            console.error('Error loading trending gists:', error);
+            this.renderGistsError();
+        }
+    }
+
+    /**
+     * Render trending gists in the sidebar container
+     * @param {Array} gists - Array of gist objects from GitHub
+     * @param {string} language - Programming language filter
+     */
+    renderTrendingGists(gists, language) {
+        const container = document.getElementById('trending-gists-container');
+        if (!container) return;
+        
+        const html = `
+            <div class="trending-gists-section">
+                <h3>🔥 Trending ${language.charAt(0).toUpperCase() + language.slice(1)} Code on GitHub</h3>
+                <div class="gists-list">
+                    ${gists.map(gist => `
+                        <div class="gist-card">
+                            <div class="gist-header">
+                                <img src="${gist.authorAvatar}" alt="${this.escapeHtml(gist.author)}" class="gist-avatar">
+                                <div class="gist-author-info">
+                                    <a href="${gist.authorUrl}" target="_blank" rel="noopener noreferrer" class="gist-author-name">
+                                        ${this.escapeHtml(gist.author)}
+                                    </a>
+                                    <span class="gist-date">${this.formatDate(gist.createdAt)}</span>
+                                </div>
+                            </div>
+                            <a href="${gist.url}" target="_blank" rel="noopener noreferrer" class="gist-link">
+                                <h4 class="gist-description">${this.escapeHtml(gist.description)}</h4>
+                            </a>
+                            <div class="gist-meta">
+                                <span class="gist-file-count">📄 ${gist.fileCount} file${gist.fileCount > 1 ? 's' : ''}</span>
+                                <span class="gist-files">${gist.files.slice(0, 2).join(', ')}${gist.files.length > 2 ? '...' : ''}</span>
+                            </div>
+                            <a href="${gist.url}" target="_blank" rel="noopener noreferrer" class="gist-view-btn">
+                                View on GitHub →
+                            </a>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+    }
+
+    /**
+     * Render message when no gists are found
+     * @param {string} language - Programming language filter
+     */
+    renderNoGists(language) {
+        const container = document.getElementById('trending-gists-container');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="trending-gists-section">
+                <h3>🔥 Trending ${language.charAt(0).toUpperCase() + language.slice(1)} Code on GitHub</h3>
+                <p class="no-gists-message">No trending ${language} gists found at the moment.</p>
+            </div>
+        `;
+    }
+
+    /**
+     * Render error message when gists fail to load
+     */
+    renderGistsError() {
+        const container = document.getElementById('trending-gists-container');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="trending-gists-section">
+                <h3>🔥 Trending Code on GitHub</h3>
+                <p class="gists-error-message">Unable to load trending gists. Please try again later.</p>
+            </div>
+        `;
+    }
+
+    /**
+     * Format date for display
+     * @param {string} dateString - ISO date string
+     * @returns {string} Formatted date
+     */
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+        return date.toLocaleDateString();
     }
 
     /**
@@ -334,7 +515,7 @@ class BlogManager {
                 ${post.description ? `<p>${this.escapeHtml(post.description)}</p>` : ''}
                 <div class="blog-code">${this.escapeHtml(post.code)}</div>
                 <p><strong>Language:</strong> ${this.escapeHtml(post.programmingLanguage || post.language || '')}</p>
-                ${post.fileUrl ? `<p><strong>Attachment:</strong> <a href="${post.fileUrl}" target="_blank" class="file-link">Download File</a></p>` : ''}
+                ${post.fileUrl ? `<p><strong>Attachment:</strong> <a href="${post.fileUrl}" target="_blank" class="file-link" download>📎 ${post.fileName || 'Download File'}</a></p>` : ''}
                 <p class="blog-author">By ${this.escapeHtml(post.author)} on ${new Date(post.createdAt).toLocaleDateString()}</p>
             </div>
         `).join('');

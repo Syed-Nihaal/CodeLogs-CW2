@@ -11,6 +11,9 @@ class ProfileManager {
         // Current viewing user (can be different from logged-in user)
         this.currentProfileUser = null;
         
+        // Flag to prevent recursive calls
+        this.isLoadingProfile = false;
+        
         this.init();
     }
 
@@ -25,10 +28,12 @@ class ProfileManager {
      * Set up profile-related event listeners
      */
     setupEventListeners() {
-        // Tab switching - use event delegation for reliability
+        // Tab switching - use event delegation
         document.addEventListener('click', (e) => {
             const tabButton = e.target.closest('.tab-button');
             if (tabButton) {
+                e.preventDefault();
+                e.stopPropagation();
                 this.handleTabSwitch(e);
             }
         });
@@ -44,43 +49,10 @@ class ProfileManager {
             const userCard = e.target.closest('.user-card');
             if (userCard && userCard.dataset.username) {
                 e.preventDefault();
+                e.stopPropagation();
                 this.loadProfile(userCard.dataset.username);
             }
         });
-
-        // NEW: Handle profile icon button in navigation
-        document.addEventListener('click', (e) => {
-            // Check if clicked on profile icon or its parent link
-            const profileIcon = e.target.closest('[data-page="profile"]');
-            if (profileIcon) {
-                e.preventDefault();
-                this.handleProfileIconClick();
-            }
-        });
-    }
-
-    /**
-     * NEW: Handle profile icon button click
-     */
-    async handleProfileIconClick() {
-        try {
-            // First check if user is logged in
-            const loggedInUser = window.authManager ? await window.authManager.getCurrentUser() : null;
-            
-            if (!loggedInUser) {
-                // If not logged in, redirect to login page
-                if (window.blogManager) {
-                    window.blogManager.showPage('login');
-                }
-                alert('Please log in to view your profile');
-                return;
-            }
-            
-            // Load current user's profile
-            await this.loadProfile(loggedInUser);
-        } catch (error) {
-            console.error('Profile icon click error:', error);
-        }
     }
 
     /**
@@ -131,25 +103,33 @@ class ProfileManager {
      * @param {string} username - Username of profile to load
      */
     async loadProfile(username) {
-        // Get logged-in user
-        const loggedInUser = window.authManager ? await window.authManager.getCurrentUser() : null;
-        
-        // If no username specified, load logged-in user's profile
-        if (!username) {
-            username = loggedInUser;
-        }
-        
-        // If still no username, redirect to login
-        if (!username) {
-            if (window.blogManager) {
-                window.blogManager.showPage('login');
-            }
+        // Prevent recursive calls
+        if (this.isLoadingProfile) {
+            console.log('Profile loading already in progress, skipping...');
             return;
         }
         
-        this.currentProfileUser = username;
+        this.isLoadingProfile = true;
         
         try {
+            // Get logged-in user
+            const loggedInUser = window.authManager ? await window.authManager.getCurrentUser() : null;
+            
+            // If no username specified, load logged-in user's profile
+            if (!username) {
+                username = loggedInUser;
+            }
+            
+            // If still no username, redirect to login
+            if (!username) {
+                if (window.blogManager) {
+                    window.blogManager.showPage('login');
+                }
+                return;
+            }
+            
+            this.currentProfileUser = username;
+            
             // Send GET request to /M01039337/users/:username/profile
             const response = await fetch(`${this.baseURL}/users/${username}/profile`, {
                 method: 'GET',
@@ -169,11 +149,15 @@ class ProfileManager {
                 // Show/hide follow button
                 this.updateFollowButton(username, loggedInUser, data.profile.isFollowing);
                 
-                // Load posts by default
-                this.loadUserPosts();
+                // Reset tabs to default (Posts tab)
+                this.resetTabs();
                 
-                // Show profile page
-                if (window.blogManager) {
+                // Load posts by default
+                await this.loadUserPosts();
+                
+                // FIXED: Only show profile page if we're not already on it
+                // This prevents the infinite loop
+                if (window.blogManager && window.blogManager.currentPage !== 'profile') {
                     window.blogManager.showPage('profile');
                 }
             } else {
@@ -183,7 +167,33 @@ class ProfileManager {
         } catch (error) {
             console.error('Profile error:', error);
             alert('An error occurred while loading profile.');
+        } finally {
+            // Always reset the loading flag
+            this.isLoadingProfile = false;
         }
+    }
+
+    /**
+     * Reset tabs to default state (Posts tab active)
+     */
+    resetTabs() {
+        // Set Posts tab as active
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            if (btn.dataset.tab === 'posts') {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // Show Posts tab content, hide others
+        document.querySelectorAll('.tab-content').forEach(content => {
+            if (content.id === 'postsTab') {
+                content.classList.remove('hidden');
+            } else {
+                content.classList.add('hidden');
+            }
+        });
     }
 
     /**
@@ -268,7 +278,7 @@ class ProfileManager {
             }
             
             // Reload profile to update stats and button state
-            this.loadProfile(this.currentProfileUser);
+            await this.loadProfile(this.currentProfileUser);
             
         } catch (error) {
             console.error('Follow toggle error:', error);
@@ -365,6 +375,7 @@ class ProfileManager {
                         ${post.description ? `<p>${this.escapeHtml(post.description)}</p>` : ''}
                         <div class="blog-code">${this.escapeHtml(post.code)}</div>
                         <p><strong>Language:</strong> ${this.escapeHtml(post.programmingLanguage || post.language || '')}</p>
+                        ${post.fileUrl ? `<p><strong>Attachment:</strong> <a href="${post.fileUrl}" target="_blank" class="file-link">Download File</a></p>` : ''}
                         <p class="blog-author">Posted on ${new Date(post.createdAt).toLocaleDateString()}</p>
                     </div>
                 `).join('');
@@ -513,6 +524,75 @@ class ProfileManager {
         } catch (error) {
             console.error('Load followers error:', error);
             container.innerHTML = '<p class="no-results-message">Error loading followers list.</p>';
+        }
+    }
+
+    /**
+     * Handle profile picture upload
+     * Call this when user selects a new profile picture
+     */
+    async handleProfilePictureUpload(fileInput) {
+        try {
+            // Check if user is logged in
+            const loggedInUser = window.authManager ? await window.authManager.getCurrentUser() : null;
+            
+            if (!loggedInUser) {
+                alert('Please log in to upload profile picture');
+                return;
+            }
+            
+            // Check if file is selected
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file (JPG, PNG, GIF)');
+                return;
+            }
+            
+            // Validate file size (max 5MB)
+            const maxSize = 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert('Image size must be less than 5MB');
+                return;
+            }
+            
+            // Create FormData
+            const formData = new FormData();
+            formData.append('profilePicture', file);
+            
+            // Send upload request
+            const response = await fetch(`${this.baseURL}/upload/profile-picture`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update profile picture display
+                const profileAvatar = document.getElementById('profileAvatar');
+                if (profileAvatar) {
+                    profileAvatar.src = data.profilePictureUrl;
+                }
+                
+                alert('Profile picture updated successfully!');
+                
+                // Reload profile to show updated picture
+                this.loadProfile(loggedInUser);
+            } else {
+                alert(data.message || 'Failed to upload profile picture');
+            }
+            
+        } catch (error) {
+            console.error('Profile picture upload error:', error);
+            alert('An error occurred while uploading profile picture');
         }
     }
 

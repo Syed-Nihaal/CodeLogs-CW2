@@ -198,30 +198,16 @@
                         <option value="Other">Other</option>
                     </select>
                 </div>
-                
-                <div class="blog-posts" id="all-posts">
-                    <!-- All posts will be loaded here (20 posts per page) -->
-                </div>
-            </div>
 
-            <!-- Create Post Page with File Upload -->
-            <div id="create-page" class="page-content hidden">
-                <div class="create-post-form">
-                    <h2 style="text-align: center;">Create New Post</h2>
-                    <br>
-                    <form id="createPostForm" enctype="multipart/form-data">
-                        <label for="post-title">Title *</label>
-                        <input type="text" id="post-title" name="title" required>
-                        
-                        <label for="post-description">Description</label>
-                        <textarea id="post-description" name="description" placeholder="Describe your code snippet..."></textarea>
-                        
-                        <label for="post-code">Code *</label>
-                        <textarea id="post-code" name="code" placeholder="Paste your code here..." required></textarea>
-                        
-                        <label for="post-language">Programming Language *</label>
-                        <select id="post-language" name="language" required>
-                            <option value="">Select a language...</option>
+                <!-- Postboard Page with GitHub Gists -->
+                <div id="posts-page" class="page-content hidden">
+                    <h2 style="text-align: center;">All Code Posts</h2>
+                    
+                    <!-- Language Filter -->
+                    <div class="filter-container" style="text-align: center; margin: 2rem 0;">
+                        <label for="language-filter" style="margin-right: 1rem;">Filter by Language:</label>
+                        <select id="language-filter" class="language-filter-select">
+                            <option value="">All Languages</option>
                             <option value="JavaScript">JavaScript</option>
                             <option value="Python">Python</option>
                             <option value="C">C</option>
@@ -237,20 +223,76 @@
                             <option value="Shell">Shell/Bash</option>
                             <option value="Other">Other</option>
                         </select>
-                        
-                        <!-- NEW: File upload input -->
-                        <label for="post-file">Attach File (optional)</label>
-                        <input type="file" id="post-file" name="file" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.doc,.docx,.zip">
-                        <p style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem;">
-                            Accepted formats: Images (JPG, PNG, GIF), Documents (PDF, TXT, DOC, DOCX), Archives (ZIP). Max 5MB.
-                        </p>
-                        
-                        <button type="submit" class="button register-button">Publish Post</button>
-                        <!-- Message label for displaying post status -->
-                        <label id="create-messageLabel" style="display:block; margin-top:10px;"></label>
-                    </form>
+                    </div>
+                    
+                    <!-- NEW: GitHub Gists Container -->
+                    <div id="trending-gists-container" class="trending-gists-wrapper">
+                        <!-- Trending gists will be loaded here via AJAX from GitHub API -->
+                    </div>
+                    
+                    <div class="blog-posts" id="all-posts">
+                        <!-- All posts will be loaded here (20 posts per page) -->
+                    </div>
                 </div>
+
+            <!-- Create Post Page with File Upload -->
+            <div id="create-page" class="page-content hidden">
+            <div class="create-post-form">
+                <h2 style="text-align: center;">Create New Post</h2>
+                <br>
+                <form id="createPostForm" enctype="multipart/form-data">
+                    <label for="post-title">Title *</label>
+                    <input type="text" id="post-title" name="title" placeholder="Give your code a descriptive title..." required>
+                    
+                    <label for="post-description">Description</label>
+                    <textarea id="post-description" name="description" placeholder="Describe your code snippet..." rows="3"></textarea>
+                    
+                    <label for="post-code">Code *</label>
+                    <textarea id="post-code" name="code" placeholder="Paste your code here..." rows="12" required></textarea>
+                    
+                    <label for="post-language">Programming Language *</label>
+                    <select id="post-language" name="language" required>
+                        <option value="">Select a language...</option>
+                        <option value="JavaScript">JavaScript</option>
+                        <option value="Python">Python</option>
+                        <option value="C">C</option>
+                        <option value="C++">C++</option>
+                        <option value="C#">C#</option>
+                        <option value="PHP">PHP</option>
+                        <option value="Go">Go</option>
+                        <option value="Rust">Rust</option>
+                        <option value="TypeScript">TypeScript</option>
+                        <option value="HTML">HTML</option>
+                        <option value="CSS">CSS</option>
+                        <option value="SQL">SQL</option>
+                        <option value="Shell">Shell/Bash</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    
+                    <!-- IMPROVED: File upload with better UI -->
+                    <label for="post-file">Attach File (optional)</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="post-file" name="file" accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.doc,.docx,.zip" class="file-input">
+                        <div class="file-upload-display" id="fileUploadDisplay">
+                            <span class="file-icon">📎</span>
+                            <span class="file-text">Choose a file or drag here</span>
+                            <span class="file-name" id="fileName"></span>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 0.5rem;">
+                        Accepted: Images (JPG, PNG, GIF), Documents (PDF, TXT, DOC, DOCX), Archives (ZIP). Max 5MB.
+                    </p>
+                    
+                    <button type="submit" class="button register-button">
+                        <span class="button-icon">📤</span>
+                        Publish Post
+                    </button>
+                    
+                    <!-- Message label for displaying post status -->
+                    <label id="create-messageLabel" style="display:block; margin-top:10px; text-align:center; font-weight:bold;"></label>
+                </form>
             </div>
+        </div>
 
             <!-- Profile Page -->
             <div id="profile-page" class="page-content hidden">

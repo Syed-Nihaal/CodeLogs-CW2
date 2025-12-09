@@ -642,6 +642,232 @@ hr {
     font-size: 1.1rem;
 }
 
+/* Trending Gists Container */
+.trending-gists-section {
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 2px solid rgba(0, 200, 200, 0.3);
+}
+
+.trending-gists-section h3 {
+    color: rgba(0, 200, 200, 1);
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+/* Gists List */
+.gists-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Individual Gist Card */
+.gist-card {
+    background: rgba(30, 35, 45, 0.8);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid rgba(0, 200, 200, 0.2);
+    transition: all 0.3s ease;
+}
+
+.gist-card:hover {
+    border-color: rgba(0, 200, 200, 0.5);
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0, 200, 200, 0.2);
+}
+
+/* Gist Header with Author Info */
+.gist-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.gist-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 200, 200, 0.3);
+}
+
+.gist-author-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.gist-author-name {
+    color: rgba(0, 200, 200, 1);
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.gist-author-name:hover {
+    text-decoration: underline;
+}
+
+.gist-date {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+}
+
+/* Gist Description Link */
+.gist-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.gist-description {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.gist-link:hover .gist-description {
+    color: rgba(255, 255, 255, 1);
+}
+
+/* Gist Metadata */
+.gist-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.75rem 0;
+    flex-wrap: wrap;
+}
+
+.gist-file-count {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+}
+
+.gist-files {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    font-family: monospace;
+}
+
+/* View on GitHub Button */
+.gist-view-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: rgba(0, 200, 200, 0.2);
+    color: rgba(0, 200, 200, 1);
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0, 200, 200, 0.4);
+    margin-top: 0.5rem;
+}
+
+.gist-view-btn:hover {
+    background-color: rgba(0, 200, 200, 0.3);
+    border-color: rgba(0, 200, 200, 0.6);
+    transform: translateX(3px);
+}
+
+/* No Gists Message */
+.no-gists-message,
+.gists-error-message {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 2rem;
+    font-size: 1rem;
+}
+
+.gists-error-message {
+    color: rgba(255, 100, 100, 0.8);
+}
+
+/* Responsive Design for Gists */
+@media (max-width: 768px) {
+    .trending-gists-section {
+        padding: 1rem;
+    }
+    
+    .gist-card {
+        padding: 0.75rem;
+    }
+    
+    .gist-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+
+/* File Upload Styling */
+.file-upload-wrapper {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.file-input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.file-upload-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(0, 200, 200, 0.1);
+    border: 2px dashed rgba(0, 200, 200, 0.4);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-upload-display:hover {
+    background: rgba(0, 200, 200, 0.15);
+    border-color: rgba(0, 200, 200, 0.6);
+}
+
+.file-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.file-text {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+}
+
+.file-name {
+    color: rgba(0, 200, 200, 1);
+    font-weight: bold;
+    margin-top: 0.5rem;
+    display: none;
+}
+
+.file-name.active {
+    display: block;
+}
+
+.button-icon {
+    margin-right: 0.5rem;
+}
+
+/* GitHub Gists Wrapper */
+.trending-gists-wrapper {
+    max-width: 1200px;
+    margin: 2rem auto;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .profile-header {

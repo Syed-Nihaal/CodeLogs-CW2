@@ -344,7 +344,7 @@ app.delete(`/${STUDENT_ID}/login`, (req, res) => {
 });
 
 // Post route for creating new content
-app.post(`/${STUDENT_ID}/contents`, async (req, res) => {
+app.post(`/${STUDENT_ID}/contents`, upload.single('file'), async (req, res) => {
     try {
         // Check if user is logged in
         if (!req.session.userId) {
@@ -368,7 +368,19 @@ app.post(`/${STUDENT_ID}/contents`, async (req, res) => {
         const db = getDB();
         const contentsCollection = db.collection('contents');
         
-        // Create new content object
+        // Build file URL if file was uploaded
+        let fileUrl = null;
+        let fileName = null;
+        let fileSize = null;
+        
+        if (req.file) {
+            // File was uploaded successfully
+            fileUrl = `/assets/uploads/${req.file.filename}`;
+            fileName = req.file.originalname;
+            fileSize = req.file.size;
+        }
+        
+        // Create new content object with file information
         const newContent = {
             title: title,
             description: description || '',
@@ -376,6 +388,9 @@ app.post(`/${STUDENT_ID}/contents`, async (req, res) => {
             programmingLanguage: programmingLanguage,
             author: req.session.username,
             authorId: new ObjectId(req.session.userId),
+            fileUrl: fileUrl,
+            fileName: fileName,
+            fileSize: fileSize,
             createdAt: new Date()
         };
         
@@ -387,7 +402,9 @@ app.post(`/${STUDENT_ID}/contents`, async (req, res) => {
             message: 'Content created successfully.',
             contentId: result.insertedId,
             title: title,
-            author: req.session.username
+            author: req.session.username,
+            fileUploaded: !!fileUrl,
+            fileUrl: fileUrl
         });
         
     } catch (error) {
@@ -918,14 +935,20 @@ app.get(`/${STUDENT_ID}/users/:username/profile`, async (req, res) => {
     }
 });
 
+/**
+ * NEW: Get route to serve uploaded files
+ * This ensures files are accessible
+ */
+app.use('/assets/uploads', express.static(path.join(__dirname, 'public', 'assets', 'uploads')));
+
 // NEW: Post route for uploading profile image
-app.post(`/${STUDENT_ID}/upload/profile-image`, upload.single('profileImage'), async (req, res) => {
+app.post(`/${STUDENT_ID}/upload/profile-picture`, upload.single('profilePicture'), async (req, res) => {
     try {
         // Check if user is logged in
         if (!req.session.userId) {
             return res.status(401).json({
                 success: false,
-                message: 'Please login to upload profile image.'
+                message: 'Please login to upload profile picture.'
             });
         }
         
@@ -937,28 +960,111 @@ app.post(`/${STUDENT_ID}/upload/profile-image`, upload.single('profileImage'), a
             });
         }
         
+        // Validate file is an image
+        if (!req.file.mimetype.startsWith('image/')) {
+            return res.status(400).json({
+                success: false,
+                message: 'Only image files are allowed for profile pictures.'
+            });
+        }
+        
         // Get database instance
         const db = getDB();
         const usersCollection = db.collection('users');
         
-        // Update user's profile image
-        const imageUrl = `/assets/uploads/${req.file.filename}`;
+        // Build profile picture URL
+        const profilePictureUrl = `/assets/uploads/${req.file.filename}`;
+        
+        // Update user's profile picture in database
         await usersCollection.updateOne(
             { _id: new ObjectId(req.session.userId) },
-            { $set: { profileImage: imageUrl } }
+            { 
+                $set: { 
+                    profilePicture: profilePictureUrl,
+                    profilePictureUpdatedAt: new Date()
+                } 
+            }
         );
         
         res.json({
             success: true,
-            message: 'Profile image uploaded successfully.',
-            imageUrl: imageUrl
+            message: 'Profile picture uploaded successfully.',
+            profilePictureUrl: profilePictureUrl
         });
         
     } catch (error) {
-        console.error('Profile image upload error:', error);
+        console.error('Profile picture upload error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error during image upload.'
+            message: 'Internal server error during profile picture upload.'
+        });
+    }
+});
+
+/**
+ * Fetch trending code from GitHub Gists
+ * GET /M01039337/trending-gists
+ */
+app.get(`/${STUDENT_ID}/trending-gists`, async (req, res) => {
+    try {
+        const language = req.query.language || 'javascript';
+        
+        // Import fetch if not already available (Node.js 18+)
+        const fetch = (await import('node-fetch')).default;
+        
+        // Fetch public gists from GitHub API
+        const response = await fetch('https://api.github.com/gists/public', {
+            headers: {
+                'Accept': 'application/vnd.github+json',
+                'User-Agent': 'CodeLogs-App' // GitHub requires a User-Agent header
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`GitHub API returned status ${response.status}`);
+        }
+        
+        const gists = await response.json();
+        
+        // Filter gists by programming language and limit to 6 results
+        const filteredGists = gists
+            .filter(gist => {
+                // Check if any file in the gist matches the language
+                const files = Object.values(gist.files);
+                return files.some(file => 
+                    file.language && 
+                    file.language.toLowerCase() === language.toLowerCase()
+                );
+            })
+            .slice(0, 6) // Limit to 6 gists
+            .map(gist => ({
+                id: gist.id,
+                description: gist.description || 'No description provided',
+                url: gist.html_url,
+                author: gist.owner.login,
+                authorUrl: gist.owner.html_url,
+                authorAvatar: gist.owner.avatar_url,
+                files: Object.keys(gist.files),
+                fileCount: Object.keys(gist.files).length,
+                createdAt: gist.created_at,
+                updatedAt: gist.updated_at
+            }));
+        
+        res.json({
+            success: true,
+            message: 'Trending gists retrieved successfully from GitHub.',
+            language: language,
+            count: filteredGists.length,
+            source: 'GitHub Gists API',
+            gists: filteredGists
+        });
+        
+    } catch (error) {
+        console.error('GitHub Gists API error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch trending gists from GitHub.',
+            error: error.message
         });
     }
 });

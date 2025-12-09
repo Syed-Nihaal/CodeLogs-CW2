@@ -79,6 +79,8 @@ class RegistrationManager {
         // Get form input values and trim whitespace
         const username = document.getElementById('register-username').value.trim();
         const email = document.getElementById('register-email').value.trim();
+        const countryCode = document.getElementById('register-country-code').value.trim();
+        const phoneNumber = document.getElementById('register-phone-number').value.trim();
         const dob = document.getElementById('register-dob').value.trim();
         const password = document.getElementById('register-password').value.trim();
         const confirmPassword = document.getElementById('register-confirm-password').value.trim();
@@ -86,8 +88,8 @@ class RegistrationManager {
         this.clearMessage();
 
         // Validate all fields are filled
-        if (!username || !email || !dob || !password || !confirmPassword) {
-            this.displayMessage('Please fill in all fields.');
+        if (!username || !email || !countryCode || !phoneNumber || !dob || !password || !confirmPassword) {
+            this.displayMessage('All fields (username, email, phone, dob, password) are required.');
             return;
         }
 
@@ -131,6 +133,7 @@ class RegistrationManager {
                 body: JSON.stringify({
                     username: username,
                     email: email,
+                    phone: countryCode + phoneNumber,
                     dob: dob,
                     password: password
                 })

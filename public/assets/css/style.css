@@ -101,6 +101,8 @@ body {
 .search-container {
     position: relative;
     display: flex;
+    /* CHANGED: Direction to column so input appears below the button */
+    flex-direction: column;
     align-items: center;
     gap: 0.5rem;
 }
@@ -129,6 +131,12 @@ body {
     font-size: 0.9rem;
     width: 200px;
     transition: all 0.3s ease;
+    /* CHANGED: Added position absolute so it appears as dropdown */
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
 }
 
 .search-input.hidden {
@@ -147,10 +155,12 @@ body {
 }
 
 .search-results {
+    /* CHANGED: Position adjusted to appear below the search input */
     position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+    top: calc(100% + 45px); /* Button height + input height + gaps */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
     background-color: rgb(15, 20, 25);
     border: 1px solid rgba(0, 200, 200, 0.3);
     border-radius: 5px;
@@ -342,19 +352,23 @@ hr {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 2rem;
     margin-top: 2rem;
+    justify-items: start; /* Align posts to the left */
 }
 
-/* Recent posts - single column centered layout */
-#recent-posts {
+/* Left-aligned blog posts for Recent Code Posts */
+.blog-posts-left {
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 2rem;
+    width: 100%;
+    align-items: flex-start; /* Align all posts to the left */
 }
 
-#recent-posts .blog-card {
+.blog-posts-left .blog-card {
     width: 100%;
     max-width: 600px;
+    margin-right: auto; /* Push to left */
+    margin-left: 0;
 }
 
 /* Blog card styling */
@@ -647,7 +661,7 @@ hr {
     background: rgba(0, 0, 0, 0.6);
     border-radius: 10px;
     padding: 1.5rem;
-    margin-bottom: 2rem;
+    margin-top: 1rem;
     border: 2px solid rgba(0, 200, 200, 0.3);
 }
 
@@ -787,23 +801,6 @@ hr {
     color: rgba(255, 100, 100, 0.8);
 }
 
-/* Responsive Design for Gists */
-@media (max-width: 768px) {
-    .trending-gists-section {
-        padding: 1rem;
-    }
-    
-    .gist-card {
-        padding: 0.75rem;
-    }
-    
-    .gist-meta {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-}
-
 /* File Upload Styling */
 .file-upload-wrapper {
     position: relative;
@@ -862,14 +859,285 @@ hr {
     margin-right: 0.5rem;
 }
 
-/* GitHub Gists Wrapper */
+/* Home page layout with two columns */
+.home-layout {
+    display: flex;
+    gap: 3rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    align-items: flex-start;
+}
+
+.left-column {
+    flex: 2;
+    min-width: 0;
+}
+
+.right-column {
+    flex: 1;
+    min-width: 0;
+    max-width: 450px;
+}
+
+.left-column-content,
+.right-column-content {
+    width: 100%;
+}
+
+.section-title {
+    margin-bottom: 1.5rem;
+    color: rgba(0, 200, 200, 1);
+    font-size: 1.8rem;
+    display: block;
+    width: 100%;
+}
+
+.left-title {
+    text-align: left;
+    padding-left: 0;
+}
+
+.right-title {
+    text-align: right;
+    padding-right: 0;
+}
+
+/* Right-aligned content for Trending Gists */
+.right-column-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
 .trending-gists-wrapper {
-    max-width: 1200px;
+    width: 100%;
+}
+
+/* Reddit-style filter */
+.reddit-filter-container {
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
     margin: 2rem auto;
+    max-width: 1200px;
+    border: 1px solid rgba(0, 200, 200, 0.2);
+}
+
+.filter-header {
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.5rem;
+}
+
+.filter-label {
+    font-weight: bold;
+    color: rgba(0, 200, 200, 1);
+    font-size: 1.1rem;
+}
+
+.filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.filter-tag {
+    padding: 0.4rem 0.8rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.filter-tag:hover {
+    background: rgba(0, 200, 200, 0.2);
+    border-color: rgba(0, 200, 200, 0.5);
+    transform: translateY(-2px);
+}
+
+.filter-tag.active {
+    background: rgba(0, 200, 200, 0.9);
+    border-color: rgba(0, 200, 200, 1);
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0, 200, 200, 0.3);
+}
+
+/* Centered blog posts for posts page */
+.blog-posts-centered {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    margin: 2rem auto;
+    max-width: 1200px;
+    justify-items: center;
+}
+
+.blog-posts-centered .blog-card {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Posts Page Vertical Layout */
+.posts-page-layout {
+    display: flex;
+    gap: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    align-items: flex-start;
+}
+
+.posts-filter-column {
+    flex: 0 0 300px;
+    position: sticky;
+    top: 20px;
+}
+
+.posts-content-column {
+    flex: 1;
+    min-width: 0; /* Prevents flex item from overflowing */
+}
+
+/* Right-aligned posts grid */
+.blog-posts-right {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    justify-items: end; /* Align posts to the right */
+}
+
+.blog-posts-right .blog-card {
+    width: 100%;
+    max-width: 400px;
+    margin-left: auto; /* Push to right */
+    margin-right: 0;
+}
+
+/* Adjust filter container for vertical layout */
+.posts-filter-column .reddit-filter-container {
+    position: sticky;
+    top: 20px;
+    margin: 0;
+    max-width: 100%;
+}
+
+.posts-filter-column .filter-tags {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.posts-filter-column .filter-tag {
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
+    border-radius: 5px;
+    margin-bottom: 0.25rem;
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+    .home-layout {
+        flex-direction: column;
+        gap: 2rem;
+    }
+    
+    .right-column {
+        order: -1;
+        max-width: 100%;
+    }
+    
+    .left-column-content,
+    .right-column-content {
+        align-items: center;
+    }
+    
+    .left-title,
+    .right-title {
+        text-align: center;
+        padding: 0;
+    }
+    
+    .blog-posts-left .blog-card {
+        margin: 0 auto;
+    }
+    
+    .right-column-content {
+        align-items: center;
+    }
+    
+    .header-container nav {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .header-logo {
+        max-height: 60px;
+    }
+    
+    .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .posts-page-layout {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .posts-filter-column {
+        flex: 0 0 auto;
+        width: 100%;
+        position: static;
+    }
+    
+    .posts-filter-column .filter-tags {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .posts-filter-column .filter-tag {
+        width: auto;
+        flex: 1 0 auto;
+        text-align: center;
+    }
+    
+    .blog-posts-right {
+        justify-items: center;
+    }
+    
+    .blog-posts-right .blog-card {
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
 @media (max-width: 768px) {
+    .home-layout {
+        padding: 0 1rem;
+    }
+    
+    .filter-tags {
+        gap: 0.3rem;
+    }
+    
+    .filter-tag {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    .blog-posts-centered {
+        grid-template-columns: 1fr;
+        padding: 0 1rem;
+    }
+    
     .profile-header {
         flex-direction: column;
         align-items: center;
@@ -883,4 +1151,128 @@ hr {
     .profile-tabs {
         flex-wrap: wrap;
     }
+    
+    .header-container {
+        padding: 1rem;
+    }
+    
+    .content-area {
+        padding: 1rem;
+    }
+    
+    .form-container {
+        margin: 1rem auto;
+        padding: 1.5rem;
+    }
+    
+    .trending-gists-section {
+        padding: 1rem;
+    }
+    
+    .gist-card {
+        padding: 0.75rem;
+    }
+    
+    .gist-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .posts-filter-column .filter-tags {
+        gap: 0.3rem;
+    }
+    
+    .posts-filter-column .filter-tag {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+        min-width: 80px;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-icons {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .nav-links a {
+        margin: 0 5px;
+    }
+    
+    .profile-header {
+        padding: 1rem;
+    }
+    
+    .profile-stats {
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .stat-item {
+        flex: 0 0 calc(50% - 1rem);
+    }
+    
+    .tab-button {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .create-post-form {
+        margin: 1rem;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* Gist Footer */
+.gist-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.gist-note {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.gist-note a {
+    color: rgba(0, 200, 200, 0.8);
+    text-decoration: none;
+}
+
+.gist-note a:hover {
+    text-decoration: underline;
+}
+
+/* Placeholder and Error Gists */
+.placeholder-gist,
+.error-gist {
+    text-align: center;
+    padding: 2rem;
+}
+
+.gist-placeholder,
+.gist-error-message {
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 1rem;
+}
+
+.gist-suggestion {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 1rem;
+}
+
+.gist-suggestion a {
+    color: rgba(0, 200, 200, 0.8);
+    text-decoration: none;
+}
+
+.gist-suggestion a:hover {
+    text-decoration: underline;
 }

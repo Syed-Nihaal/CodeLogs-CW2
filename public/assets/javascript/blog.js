@@ -84,6 +84,14 @@ class BlogManager {
                 this.showPage(page);
                 return false;
             }
+            
+            // Handle clicks on reddit-style filter tags
+            if (e.target.classList.contains('filter-tag')) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                this.handleFilterTagClick(e.target);
+                return false;
+            }
         });
 
         // Create post form with file upload support
@@ -92,21 +100,32 @@ class BlogManager {
             createPostForm.addEventListener('submit', (e) => this.handleCreatePost(e));
         }
         
-        // Language filter dropdown
+        // Old language filter dropdown - keep for compatibility but not used in new design
         const languageFilter = document.getElementById('language-filter');
         if (languageFilter) {
             languageFilter.addEventListener('change', (e) => {
                 this.currentLanguageFilter = e.target.value;
                 this.currentPostsPage = 1; // Reset to first page
                 this.loadAllPosts();
-                // Load GitHub gists for selected language
-                if (e.target.value) {
-                    this.loadTrendingGists(e.target.value);
-                } else {
-                    this.loadTrendingGists('javascript'); // Default to JavaScript
-                }
             });
         }
+    }
+
+    /**
+     * Handle reddit-style filter tag clicks
+     * @param {HTMLElement} target - The clicked filter tag element
+     */
+    handleFilterTagClick(target) {
+        // Update active state
+        document.querySelectorAll('.filter-tag').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        target.classList.add('active');
+        
+        // Set filter and reload posts
+        this.currentLanguageFilter = target.getAttribute('data-language');
+        this.currentPostsPage = 1; // Reset to first page
+        this.loadAllPosts();
     }
 
     /**
@@ -176,14 +195,28 @@ class BlogManager {
         // Load specific content for pages
         if (page === 'posts') {
             this.currentPostsPage = 1; // Reset to first page
-            this.currentLanguageFilter = ''; // Reset filter
-            this.loadAllPosts();
-            this.loadTrendingGists('javascript'); // Load GitHub gists
+            
+            // Set active filter tag based on currentLanguageFilter
+            if (this.currentLanguageFilter !== null) {
+                setTimeout(() => {
+                    document.querySelectorAll('.filter-tag').forEach(btn => {
+                        const lang = btn.getAttribute('data-language');
+                        if (lang === this.currentLanguageFilter) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                }, 100);
+            }
+            
+            await this.loadAllPosts();
         } else if (page === 'home') {
             // Check if user is logged in and load appropriate content
             const user = window.authManager ? await window.authManager.getCurrentUser() : null;
             if (user) {
-                this.loadRecentPosts();
+                await this.loadRecentPosts();
+                await this.loadTrendingGists(''); // Load all language gists
             }
         } else if (page === 'profile') {
             // Load logged-in user's profile
@@ -266,7 +299,7 @@ class BlogManager {
             const response = await fetch(`${this.baseURL}/contents`, {
                 method: 'POST',
                 credentials: 'same-origin',
-                body: formData // Don't set Content-Type header - browser will set it automatically with boundary
+                body: formData
             });
             
             // Parse JSON response
@@ -312,12 +345,13 @@ class BlogManager {
     }
 
     /**
-     * Load recent posts (first 10 posts) using AJAX with pagination
+     * Load recent posts (first 10 posts) using AJAX
+     * CHANGED: Now only shows posts from followed users
      * Sends GET request to /M01039337/contents
      */
     async loadRecentPosts() {
         try {
-            // Send GET request to /M01039337/contents with pagination (limit 10 for recent)
+            // Send GET request to /M01039337/contents
             const response = await fetch(`${this.baseURL}/contents?page=1&limit=10`, {
                 method: 'GET',
                 credentials: 'same-origin'
@@ -327,9 +361,13 @@ class BlogManager {
             const data = await response.json();
             
             if (data.success) {
-                this.renderPosts(data.contents, 'recent-posts', false); // false = no pagination controls
+                this.renderPosts(data.contents, 'recent-posts', false);
             } else {
-                console.error('Failed to load recent posts:', data.message);
+                // CHANGED: Show message to follow users
+                const container = document.getElementById('recent-posts');
+                if (container && data.message) {
+                    container.innerHTML = `<p class="no-results-message">${data.message}</p>`;
+                }
             }
             
         } catch (error) {
@@ -338,7 +376,8 @@ class BlogManager {
     }
 
     /**
-     * Load all posts using AJAX with pagination and language filter
+     * Load all posts using AJAX with language filter
+     * CHANGED: Now only shows posts from followed users
      * Sends GET request to /M01039337/contents
      */
     async loadAllPosts() {
@@ -363,31 +402,49 @@ class BlogManager {
             if (data.success) {
                 this.renderPosts(data.contents, 'all-posts', false);
             } else {
-                console.error('Failed to load all posts:', data.message);
+                // CHANGED: Show appropriate message
+                const container = document.getElementById('all-posts');
+                if (container) {
+                    const message = data.message || 'Failed to load posts.';
+                    container.innerHTML = `<p class="no-results-message">${message}</p>`;
+                }
             }
             
         } catch (error) {
             console.error('Error loading all posts:', error);
+            const container = document.getElementById('all-posts');
+            if (container) {
+                container.innerHTML = '<p class="no-results-message">Error loading posts.</p>';
+            }
         }
     }
 
     /**
      * Load trending gists from GitHub filtered by programming language (THIRD-PARTY DATA)
-     * @param {string} language - Programming language to filter by
+     * CHANGED: Empty language parameter loads all language gists
+     * @param {string} language - Programming language to filter by (empty for all)
      */
-    async loadTrendingGists(language = 'javascript') {
+    async loadTrendingGists(language = '') {
         try {
+            // Handle empty language for "all languages"
+            const languageLower = language ? language.toLowerCase() : '';
+            
+            console.log('Loading trending gists for language:', languageLower);
+            
             // Send GET request to server endpoint that fetches from GitHub
-            const response = await fetch(`${this.baseURL}/trending-gists?language=${encodeURIComponent(language)}`, {
+            const response = await fetch(`${this.baseURL}/trending-gists?language=${encodeURIComponent(languageLower)}`, {
                 method: 'GET',
                 credentials: 'same-origin'
             });
             
             const data = await response.json();
+            console.log('Trending gists response:', data);
             
             if (data.success && data.gists && data.gists.length > 0) {
+                console.log(`Found ${data.gists.length} trending gists`);
                 this.renderTrendingGists(data.gists, language);
             } else {
+                console.log('No trending gists found or error in response');
                 this.renderNoGists(language);
             }
             
@@ -399,40 +456,53 @@ class BlogManager {
 
     /**
      * Render trending gists in the sidebar container
+     * CHANGED: Display "All Languages" when no specific language is selected
      * @param {Array} gists - Array of gist objects from GitHub
-     * @param {string} language - Programming language filter
+     * @param {string} language - Programming language filter (empty for all)
      */
     renderTrendingGists(gists, language) {
         const container = document.getElementById('trending-gists-container');
         if (!container) return;
         
+        console.log(`Rendering ${gists.length} gists`);
+        
+        // Display title based on language selection
+        const displayTitle = language 
+            ? `${language.charAt(0).toUpperCase() + language.slice(1)} Code` 
+            : 'All Languages Code';
+        
+        // Limit to 5 gists for better display
+        const gistsToShow = gists.slice(0, 5);
+        
         const html = `
             <div class="trending-gists-section">
-                <h3>🔥 Trending ${language.charAt(0).toUpperCase() + language.slice(1)} Code on GitHub</h3>
                 <div class="gists-list">
-                    ${gists.map(gist => `
+                    ${gistsToShow.map(gist => `
                         <div class="gist-card">
                             <div class="gist-header">
-                                <img src="${gist.authorAvatar}" alt="${this.escapeHtml(gist.author)}" class="gist-avatar">
+                                <img src="${gist.authorAvatar || 'assets/img/github.png'}" alt="${this.escapeHtml(gist.author)}" class="gist-avatar">
                                 <div class="gist-author-info">
-                                    <a href="${gist.authorUrl}" target="_blank" rel="noopener noreferrer" class="gist-author-name">
-                                        ${this.escapeHtml(gist.author)}
+                                    <a href="${gist.authorUrl || 'https://github.com'}" target="_blank" rel="noopener noreferrer" class="gist-author-name">
+                                        ${this.escapeHtml(gist.author || 'GitHub User')}
                                     </a>
-                                    <span class="gist-date">${this.formatDate(gist.createdAt)}</span>
+                                    <span class="gist-date">${gist.createdAt ? this.formatDate(gist.createdAt) : 'Recently'}</span>
                                 </div>
                             </div>
-                            <a href="${gist.url}" target="_blank" rel="noopener noreferrer" class="gist-link">
-                                <h4 class="gist-description">${this.escapeHtml(gist.description)}</h4>
+                            <a href="${gist.url || 'https://github.com'}" target="_blank" rel="noopener noreferrer" class="gist-link">
+                                <h4 class="gist-description">${this.escapeHtml(gist.description || 'Code Snippet')}</h4>
                             </a>
                             <div class="gist-meta">
-                                <span class="gist-file-count">📄 ${gist.fileCount} file${gist.fileCount > 1 ? 's' : ''}</span>
-                                <span class="gist-files">${gist.files.slice(0, 2).join(', ')}${gist.files.length > 2 ? '...' : ''}</span>
+                                <span class="gist-file-count">📄 ${gist.fileCount || 1} file${(gist.fileCount || 1) > 1 ? 's' : ''}</span>
+                                <span class="gist-files">${(gist.files || ['code']).slice(0, 2).join(', ')}${(gist.files || []).length > 2 ? '...' : ''}</span>
                             </div>
-                            <a href="${gist.url}" target="_blank" rel="noopener noreferrer" class="gist-view-btn">
+                            <a href="${gist.url || 'https://github.com'}" target="_blank" rel="noopener noreferrer" class="gist-view-btn">
                                 View on GitHub →
                             </a>
                         </div>
                     `).join('')}
+                </div>
+                <div class="gist-footer">
+                    <p class="gist-note">Showing ${gistsToShow.length} trending gists. <a href="https://gist.github.com/discover" target="_blank" rel="noopener noreferrer">Explore more on GitHub</a></p>
                 </div>
             </div>
         `;
@@ -442,16 +512,32 @@ class BlogManager {
 
     /**
      * Render message when no gists are found
-     * @param {string} language - Programming language filter
+     * CHANGED: Handle "all languages" case
+     * @param {string} language - Programming language filter (empty for all)
      */
     renderNoGists(language) {
         const container = document.getElementById('trending-gists-container');
         if (!container) return;
         
+        // Display title based on language selection
+        const displayTitle = language 
+            ? `${language.charAt(0).toUpperCase() + language.slice(1)} Code` 
+            : 'All Languages Code';
+        
+        const message = language 
+            ? `No trending ${language} gists found at the moment.`
+            : 'No trending gists found at the moment. Check back soon!';
+        
         container.innerHTML = `
             <div class="trending-gists-section">
-                <h3>🔥 Trending ${language.charAt(0).toUpperCase() + language.slice(1)} Code on GitHub</h3>
-                <p class="no-gists-message">No trending ${language} gists found at the moment.</p>
+                <div class="gists-list">
+                    <div class="gist-card placeholder-gist">
+                        <p class="gist-placeholder">${message}</p>
+                        <a href="https://gist.github.com/discover" target="_blank" rel="noopener noreferrer" class="gist-view-btn">
+                            Explore GitHub Gists →
+                        </a>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -465,8 +551,12 @@ class BlogManager {
         
         container.innerHTML = `
             <div class="trending-gists-section">
-                <h3>🔥 Trending Code on GitHub</h3>
-                <p class="gists-error-message">Unable to load trending gists. Please try again later.</p>
+                <div class="gists-list">
+                    <div class="gist-card error-gist">
+                        <p class="gist-error-message">Unable to load trending gists. Please try again later.</p>
+                        <p class="gist-suggestion">You can still explore <a href="https://gist.github.com/discover" target="_blank" rel="noopener noreferrer">GitHub Gists</a> directly.</p>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -504,8 +594,19 @@ class BlogManager {
         }
         
         if (posts.length === 0) {
-            container.innerHTML = '<p class="no-results-message">No posts available yet.</p>';
+            container.innerHTML = '<p class="no-results-message">No posts available yet. Follow users to see their posts!</p>';
             return;
+        }
+        
+        // Ensure left-aligned container for recent posts
+        if (containerId === 'recent-posts') {
+            container.classList.add('blog-posts-left');
+            container.classList.remove('blog-posts-centered', 'blog-posts-right');
+        } 
+        // Ensure right-aligned container for all posts
+        else if (containerId === 'all-posts') {
+            container.classList.add('blog-posts-right');
+            container.classList.remove('blog-posts-centered', 'blog-posts-left');
         }
         
         // Render posts

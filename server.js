@@ -119,17 +119,26 @@ app.get(`/${STUDENT_ID}/test`, (req, res) => {
     });
 });
 
+// Validate phone number
+function isValidPhoneNumber(phone) {
+    // Remove any spaces, dashes, or parentheses
+    const cleanPhone = phone.replace(/[\s\-()]/g, '');
+    
+    // Check format: starts with +, has 1-4 digits for country code, then exactly 8 digits
+    const phoneRegex = /^\+[0-9]{1,4}[0-9]{8}$/;
+    return phoneRegex.test(cleanPhone);
+}
 
 // Post route for registering a new user
 app.post(`/${STUDENT_ID}/users`, async (req, res) => {
     try {
-        const { username, email, dob, password } = req.body;
+        const { username, email, phone, dob, password } = req.body;
         
         // Validate required fields
-        if (!username || !email || !dob || !password) {
+        if (!username || !email || !phone || !dob || !password) {
             return res.status(400).json({
                 success: false,
-                message: 'All fields (username, email, dob, password) are required.'
+                message: 'All fields (username, email, phone, dob, password) are required.'
             });
         }
         
@@ -146,6 +155,14 @@ app.post(`/${STUDENT_ID}/users`, async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid email format.'
+            });
+        }
+        
+        // CHANGED: Validate phone number format (country code + 8 digits)
+        if (!isValidPhoneNumber(phone)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid phone number format. Required format: country code + 8 digits (e.g., +97112345678).'
             });
         }
         
@@ -192,6 +209,7 @@ app.post(`/${STUDENT_ID}/users`, async (req, res) => {
         const newUser = {
             username: username,
             email: email,
+            phone: phone,
             dob: dob,
             password: hashedPassword,
             createdAt: new Date()

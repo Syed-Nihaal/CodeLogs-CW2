@@ -55,12 +55,28 @@ async function setupDatabase() {
         await followsCollection.createIndex({ createdAt: -1 });
         console.log('Follows collection indexes created');
         
+        // Set comments collection index
+        const commentsCollection = db.collection('comments');
+        await commentsCollection.createIndex({ postId: 1 });
+        await commentsCollection.createIndex({ author: 1 });
+        await commentsCollection.createIndex({ createdAt: -1 });
+        console.log('Comments collection indexes created');
+        
+        // Set likes collection index
+        const likesCollection = db.collection('likes');
+        await likesCollection.createIndex({ postId: 1, user: 1 }, { unique: true });
+        await likesCollection.createIndex({ postId: 1 });
+        await likesCollection.createIndex({ user: 1 });
+        console.log('Likes collection indexes created');
+        
         // Display statistics
         console.log('Database Setup Complete');
         console.log(`Database: ${DB_NAME}`);
         console.log(`Users: ${await usersCollection.countDocuments()}`);
         console.log(`Contents: ${await contentsCollection.countDocuments()}`);
         console.log(`Follows: ${await followsCollection.countDocuments()}`);
+        console.log(`Comments: ${await commentsCollection.countDocuments()}`);
+        console.log(`Likes: ${await likesCollection.countDocuments()}`);
         
         // Display indexes
         console.log('Indexes Created');

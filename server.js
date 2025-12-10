@@ -437,29 +437,48 @@ app.post(`/${STUDENT_ID}/contents`, upload.single('file'), async (req, res) => {
 // Get route for searching for contents
 app.get(`/${STUDENT_ID}/contents`, async (req, res) => {
     try {
-        const searchQuery = req.query.q || '';
-        
+        const searchQuery = (req.query.q || '').trim();
+        const languageFilter = (req.query.language || '').trim();
+
         // Get database instance
         const db = getDB();
         const contentsCollection = db.collection('contents');
-        
-        // Search for contents matching query in title, description, or programmingLanguage (case-insensitive)
-        const contents = await contentsCollection.find({
-            $or: [
-                { title: { $regex: searchQuery, $options: 'i' } },
-                { description: { $regex: searchQuery, $options: 'i' } },
-                { programmingLanguage: { $regex: searchQuery, $options: 'i' } }
-            ]
-        }).sort({ createdAt: -1 }).toArray();
-        
+
+        // Build query parts
+        const queryParts = [];
+
+        if (searchQuery) {
+            queryParts.push({
+                $or: [
+                    { title: { $regex: searchQuery, $options: 'i' } },
+                    { description: { $regex: searchQuery, $options: 'i' } },
+                    { programmingLanguage: { $regex: searchQuery, $options: 'i' } }
+                ]
+            });
+        }
+
+        if (languageFilter) {
+            // Escape regex special chars and match language exactly (case-insensitive)
+            const escapedLanguage = languageFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            queryParts.push({ programmingLanguage: { $regex: `^${escapedLanguage}$`, $options: 'i' } });
+        }
+
+        const mongoQuery = queryParts.length > 0 ? { $and: queryParts } : {};
+
+        // Search for contents matching filters
+        const contents = await contentsCollection.find(mongoQuery)
+            .sort({ createdAt: -1 })
+            .toArray();
+
         res.json({
             success: true,
             message: 'Content search completed successfully.',
             searchQuery: searchQuery,
+            language: languageFilter,
             count: contents.length,
             contents: contents
         });
-        
+
     } catch (error) {
         console.error('Content search error:', error);
         res.status(500).json({
@@ -1015,6 +1034,298 @@ app.post(`/${STUDENT_ID}/upload/profile-picture`, upload.single('profilePicture'
         res.status(500).json({
             success: false,
             message: 'Internal server error during profile picture upload.'
+        });
+    }
+});
+
+/**
+ * Post route to create a comment on a post
+ * POST /M01039337/posts/:postId/comments
+ */
+app.post(`/${STUDENT_ID}/posts/:postId/comments`, async (req, res) => {
+    try {
+        // Check if user is logged in
+        if (!req.session.userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Please login to add comments.'
+            });
+        }
+
+        const { postId } = req.params;
+        const { text } = req.body;
+
+        // Validate required fields
+        if (!text || text.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Comment text is required.'
+            });
+        }
+
+        // Get database instance
+        const db = getDB();
+        const commentsCollection = db.collection('comments');
+        const contentsCollection = db.collection('contents');
+
+        // Check if post exists
+        const post = await contentsCollection.findOne({ _id: new ObjectId(postId) });
+        if (!post) {
+            return res.status(404).json({
+                success: false,
+                message: 'Post not found.'
+            });
+        }
+
+        // Create comment
+        const comment = {
+            postId: new ObjectId(postId),
+            author: req.session.username,
+            userId: new ObjectId(req.session.userId),
+            text: text.trim(),
+            createdAt: new Date()
+        };
+
+        const result = await commentsCollection.insertOne(comment);
+
+        res.status(201).json({
+            success: true,
+            message: 'Comment added successfully.',
+            comment: {
+                _id: result.insertedId,
+                ...comment
+            }
+        });
+
+    } catch (error) {
+        console.error('Comment error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while adding comment.'
+        });
+    }
+});
+
+/**
+ * Get route to retrieve comments for a post
+ * GET /M01039337/posts/:postId/comments
+ */
+app.get(`/${STUDENT_ID}/posts/:postId/comments`, async (req, res) => {
+    try {
+        const { postId } = req.params;
+
+        // Get database instance
+        const db = getDB();
+        const commentsCollection = db.collection('comments');
+
+        // Get all comments for post
+        const comments = await commentsCollection.find({
+            postId: new ObjectId(postId)
+        }).sort({ createdAt: -1 }).toArray();
+
+        res.json({
+            success: true,
+            postId: postId,
+            count: comments.length,
+            comments: comments
+        });
+
+    } catch (error) {
+        console.error('Get comments error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while retrieving comments.'
+        });
+    }
+});
+
+/**
+ * Delete route to remove a comment
+ * DELETE /M01039337/comments/:commentId
+ */
+app.delete(`/${STUDENT_ID}/comments/:commentId`, async (req, res) => {
+    try {
+        // Check if user is logged in
+        if (!req.session.userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Please login to delete comments.'
+            });
+        }
+
+        const { commentId } = req.params;
+
+        // Get database instance
+        const db = getDB();
+        const commentsCollection = db.collection('comments');
+
+        // Find comment
+        const comment = await commentsCollection.findOne({ _id: new ObjectId(commentId) });
+        if (!comment) {
+            return res.status(404).json({
+                success: false,
+                message: 'Comment not found.'
+            });
+        }
+
+        // Check if user is comment author
+        if (comment.author !== req.session.username) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only delete your own comments.'
+            });
+        }
+
+        // Delete comment
+        await commentsCollection.deleteOne({ _id: new ObjectId(commentId) });
+
+        res.json({
+            success: true,
+            message: 'Comment deleted successfully.'
+        });
+
+    } catch (error) {
+        console.error('Delete comment error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while deleting comment.'
+        });
+    }
+});
+
+/**
+ * Post route to like/unlike a post
+ * POST /M01039337/posts/:postId/like
+ */
+app.post(`/${STUDENT_ID}/posts/:postId/like`, async (req, res) => {
+    try {
+        // Check if user is logged in
+        if (!req.session.userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Please login to like posts.'
+            });
+        }
+
+        const { postId } = req.params;
+        const { isLike } = req.body; // true for like, false for dislike
+
+        // Get database instance
+        const db = getDB();
+        const likesCollection = db.collection('likes');
+        const contentsCollection = db.collection('contents');
+
+        // Check if post exists
+        const post = await contentsCollection.findOne({ _id: new ObjectId(postId) });
+        if (!post) {
+            return res.status(404).json({
+                success: false,
+                message: 'Post not found.'
+            });
+        }
+
+        // Check if user already liked/disliked this post
+        const existingLike = await likesCollection.findOne({
+            postId: new ObjectId(postId),
+            user: req.session.username
+        });
+
+        if (existingLike) {
+            // Update existing like/dislike
+            if (existingLike.isLike === isLike) {
+                // Same type, remove it (unlike/undislike)
+                await likesCollection.deleteOne({ _id: existingLike._id });
+                return res.json({
+                    success: true,
+                    message: isLike ? 'Like removed.' : 'Dislike removed.',
+                    action: 'removed',
+                    isLike: isLike
+                });
+            } else {
+                // Different type, update it
+                await likesCollection.updateOne(
+                    { _id: existingLike._id },
+                    { $set: { isLike: isLike, updatedAt: new Date() } }
+                );
+                return res.json({
+                    success: true,
+                    message: isLike ? 'Changed to like.' : 'Changed to dislike.',
+                    action: 'updated',
+                    isLike: isLike
+                });
+            }
+        }
+
+        // Create new like/dislike
+        const likeRecord = {
+            postId: new ObjectId(postId),
+            user: req.session.username,
+            userId: new ObjectId(req.session.userId),
+            isLike: isLike,
+            createdAt: new Date()
+        };
+
+        await likesCollection.insertOne(likeRecord);
+
+        res.status(201).json({
+            success: true,
+            message: isLike ? 'Post liked.' : 'Post disliked.',
+            action: 'created',
+            isLike: isLike
+        });
+
+    } catch (error) {
+        console.error('Like error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while liking post.'
+        });
+    }
+});
+
+/**
+ * Get route to retrieve like/dislike statistics for a post
+ * GET /M01039337/posts/:postId/likes
+ */
+app.get(`/${STUDENT_ID}/posts/:postId/likes`, async (req, res) => {
+    try {
+        const { postId } = req.params;
+
+        // Get database instance
+        const db = getDB();
+        const likesCollection = db.collection('likes');
+
+        // Get all likes and dislikes for post
+        const likes = await likesCollection.find({
+            postId: new ObjectId(postId)
+        }).toArray();
+
+        // Count likes and dislikes
+        const likeCount = likes.filter(l => l.isLike).length;
+        const dislikeCount = likes.filter(l => !l.isLike).length;
+
+        // Check if current user has liked or disliked (if logged in)
+        let userVote = null;
+        if (req.session.username) {
+            const userVote_record = likes.find(l => l.user === req.session.username);
+            if (userVote_record) {
+                userVote = userVote_record.isLike ? 'like' : 'dislike';
+            }
+        }
+
+        res.json({
+            success: true,
+            postId: postId,
+            likeCount: likeCount,
+            dislikeCount: dislikeCount,
+            userVote: userVote
+        });
+
+    } catch (error) {
+        console.error('Get likes error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error while retrieving likes.'
         });
     }
 });

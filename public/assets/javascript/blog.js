@@ -345,14 +345,13 @@ class BlogManager {
     }
 
     /**
-     * Load recent posts (first 10 posts) using AJAX
-     * CHANGED: Now only shows posts from followed users
-     * Sends GET request to /M01039337/contents
+     * FIXED: Load recent posts from feed (only followed users' posts)
+     * Sends GET request to /M01039337/feed
      */
     async loadRecentPosts() {
         try {
-            // Send GET request to /M01039337/contents
-            const response = await fetch(`${this.baseURL}/contents?page=1&limit=10`, {
+            // FIXED: Use /feed endpoint instead of /contents to get only followed users' posts
+            const response = await fetch(`${this.baseURL}/feed?page=1&limit=10`, {
                 method: 'GET',
                 credentials: 'same-origin'
             });
@@ -361,9 +360,17 @@ class BlogManager {
             const data = await response.json();
             
             if (data.success) {
-                this.renderPosts(data.contents, 'recent-posts', false);
+                // Check if feed is empty (not following anyone or no posts)
+                if (data.contents.length === 0) {
+                    const container = document.getElementById('recent-posts');
+                    if (container) {
+                        container.innerHTML = `<p class="no-results-message">${data.message || 'Your feed is empty. Follow users to see their posts!'}</p>`;
+                    }
+                } else {
+                    this.renderPosts(data.contents, 'recent-posts', false);
+                }
             } else {
-                // CHANGED: Show message to follow users
+                // Show error message
                 const container = document.getElementById('recent-posts');
                 if (container && data.message) {
                     container.innerHTML = `<p class="no-results-message">${data.message}</p>`;
@@ -372,26 +379,30 @@ class BlogManager {
             
         } catch (error) {
             console.error('Error loading recent posts:', error);
+            const container = document.getElementById('recent-posts');
+            if (container) {
+                container.innerHTML = '<p class="no-results-message">Error loading posts.</p>';
+            }
         }
     }
 
     /**
      * Load all posts using AJAX with language filter
-     * CHANGED: Now only shows posts from followed users
+     * This shows ALL posts from ALL users (for the posts page)
      * Sends GET request to /M01039337/contents
      */
     async loadAllPosts() {
         try {
-            // Build query parameters
-            let queryParams = `q=`;
-            
-            // Add language filter if selected
+            // Build query parameters using explicit language filter to avoid broad matches (e.g., "C")
+            const queryParams = new URLSearchParams();
             if (this.currentLanguageFilter) {
-                queryParams += encodeURIComponent(this.currentLanguageFilter);
+                queryParams.set('language', this.currentLanguageFilter);
             }
             
             // Send GET request to /M01039337/contents with search query
-            const response = await fetch(`${this.baseURL}/contents?${queryParams}`, {
+            const queryString = queryParams.toString();
+            const url = queryString ? `${this.baseURL}/contents?${queryString}` : `${this.baseURL}/contents`;
+            const response = await fetch(url, {
                 method: 'GET',
                 credentials: 'same-origin'
             });
@@ -400,9 +411,16 @@ class BlogManager {
             const data = await response.json();
             
             if (data.success) {
-                this.renderPosts(data.contents, 'all-posts', false);
+                if (data.contents.length === 0) {
+                    const container = document.getElementById('all-posts');
+                    if (container) {
+                        container.innerHTML = '<p class="no-results-message">No posts found matching your filter.</p>';
+                    }
+                } else {
+                    this.renderPosts(data.contents, 'all-posts', false);
+                }
             } else {
-                // CHANGED: Show appropriate message
+                // Show error message
                 const container = document.getElementById('all-posts');
                 if (container) {
                     const message = data.message || 'Failed to load posts.';
@@ -618,6 +636,40 @@ class BlogManager {
                 <p><strong>Language:</strong> ${this.escapeHtml(post.programmingLanguage || post.language || '')}</p>
                 ${post.fileUrl ? `<p><strong>Attachment:</strong> <a href="${post.fileUrl}" target="_blank" class="file-link" download>📎 ${post.fileName || 'Download File'}</a></p>` : ''}
                 <p class="blog-author">By ${this.escapeHtml(post.author)} on ${new Date(post.createdAt).toLocaleDateString()}</p>
+                
+                <!-- Likes/Dislikes Section -->
+                <div class="post-interactions">
+                    <div id="likes-${post._id}" class="likes-section">
+                        <button class="like-btn" data-post-id="${post._id}">👍 0</button>
+                        <button class="dislike-btn" data-post-id="${post._id}">👎 0</button>
+                    </div>
+                </div>
+                
+                <!-- Comments Section - UPDATED with collapsible controls -->
+                <div class="comments-section">
+                    <div class="comments-header">
+                        <div class="comments-title-container">
+                            <h4 class="comments-title">Comments</h4>
+                            <div class="comments-controls">
+                                <button class="toggle-comments-btn" data-post-id="${post._id}" title="Click to show/hide comments">
+                                    ▼ Show Comments
+                                </button>
+                                <button class="collapse-all-comments-btn" data-post-id="${post._id}" title="Collapse/expand all comments">
+                                    Collapse All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="comments-collapsible collapsed" data-post-id="${post._id}">
+                        <form class="comment-form collapsed" data-post-id="${post._id}">
+                            <textarea class="comment-input" placeholder="Add a comment..." rows="2"></textarea>
+                            <button type="submit" class="button submit-comment-btn">Post Comment</button>
+                        </form>
+                        <div id="comments-${post._id}" class="comments-list collapsed">
+                            <p class="no-comments">Loading comments...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         `).join('');
         
@@ -627,6 +679,16 @@ class BlogManager {
         }
         
         container.innerHTML = html;
+        
+        // Load comments and likes for each post
+        posts.forEach(post => {
+            if (window.commentsManager) {
+                window.commentsManager.loadCommentsForPost(post._id);
+            }
+            if (window.likesManager) {
+                window.likesManager.loadLikesForPost(post._id);
+            }
+        });
         
         // Add event listeners to pagination buttons
         if (showPagination && totalPages > 1) {

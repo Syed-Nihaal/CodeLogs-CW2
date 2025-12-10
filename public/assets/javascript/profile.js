@@ -115,7 +115,8 @@ class ProfileManager {
             // Get logged-in user
             const loggedInUser = window.authManager ? await window.authManager.getCurrentUser() : null;
             
-            // If no username specified, load logged-in user's profile
+            // FIXED: If no username specified, load logged-in user's profile
+            // Otherwise, load the specified username's profile
             if (!username) {
                 username = loggedInUser;
             }
@@ -128,6 +129,10 @@ class ProfileManager {
                 return;
             }
             
+            console.log('Loading profile for username:', username);
+            console.log('Logged in user:', loggedInUser);
+            
+            // FIXED: Store the username we're loading BEFORE making the request
             this.currentProfileUser = username;
             
             // Send GET request to /M01039337/users/:username/profile
@@ -155,21 +160,28 @@ class ProfileManager {
                 // Load posts by default
                 await this.loadUserPosts();
                 
-                // FIXED: Only show profile page if we're not already on it
-                // This prevents the infinite loop
-                if (window.blogManager && window.blogManager.currentPage !== 'profile') {
-                    window.blogManager.showPage('profile');
+                // FIXED: Always navigate to profile page when loading a profile
+                // This ensures we show the profile page whether clicking from search or user cards
+                if (window.blogManager) {
+                    // Only change page if we're not already on the profile page
+                    if (window.blogManager.currentPage !== 'profile') {
+                        window.blogManager.showPage('profile');
+                    }
                 }
             } else {
                 alert(data.message || 'User not found');
+                this.isLoadingProfile = false;
             }
             
         } catch (error) {
             console.error('Profile error:', error);
-            alert('An error occurred while loading profile.');
-        } finally {
-            // Always reset the loading flag
+            alert('An error occurred whilst loading profile.');
             this.isLoadingProfile = false;
+        } finally {
+            // Always reset the loading flag after a delay to prevent race conditions
+            setTimeout(() => {
+                this.isLoadingProfile = false;
+            }, 500);
         }
     }
 
@@ -356,6 +368,8 @@ class ProfileManager {
         if (!container) return;
         
         try {
+            console.log('Loading posts for user:', this.currentProfileUser);
+            
             const response = await fetch(`${this.baseURL}/users/${this.currentProfileUser}/posts`, {
                 method: 'GET',
                 credentials: 'same-origin'
@@ -592,7 +606,7 @@ class ProfileManager {
             
         } catch (error) {
             console.error('Profile picture upload error:', error);
-            alert('An error occurred while uploading profile picture');
+            alert('An error occurred whilst uploading profile picture');
         }
     }
 

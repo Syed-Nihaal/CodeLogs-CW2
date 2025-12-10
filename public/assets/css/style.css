@@ -339,7 +339,7 @@ hr {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .active-nav {
@@ -1275,4 +1275,303 @@ hr {
 
 .gist-suggestion a:hover {
     text-decoration: underline;
+}
+
+/* Comments and Likes Styles */
+.post-interactions {
+    margin: 1rem 0;
+    padding: 1rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.likes-container {
+    display: flex;
+    gap: 1rem;
+}
+
+.like-btn, .dislike-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 200, 200, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.like-btn:hover, .dislike-btn:hover {
+    background: rgba(0, 200, 200, 0.1);
+    border-color: rgba(0, 200, 200, 0.6);
+    transform: scale(1.05);
+}
+
+.like-btn.active, .dislike-btn.active {
+    background: rgba(0, 200, 200, 0.2);
+    border-color: rgba(0, 200, 200, 0.8);
+    color: rgba(0, 200, 200, 1);
+}
+
+/* Comments Section */
+.comments-section {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+.comments-title {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.comment-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid rgba(0, 200, 200, 0.3);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.9);
+    font-family: Arial, sans-serif;
+    font-size: 0.9rem;
+    resize: vertical;
+}
+
+.comment-input:focus {
+    outline: none;
+    border-color: rgba(0, 200, 200, 0.8);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.comment-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.submit-comment-btn {
+    align-self: flex-end;
+    padding: 0.5rem 1.5rem;
+    background: rgba(0, 200, 200, 0.1);
+    border: 1px solid rgba(0, 200, 200, 0.5);
+    color: rgba(0, 200, 200, 0.9);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.submit-comment-btn:hover {
+    background: rgba(0, 200, 200, 0.2);
+    border-color: rgba(0, 200, 200, 0.8);
+    color: rgba(0, 200, 200, 1);
+}
+
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.comment {
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 2px solid rgba(0, 200, 200, 0.3);
+    border-radius: 2px;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.comment-author {
+    font-weight: bold;
+    color: rgba(0, 200, 200, 0.9);
+}
+
+.comment-date {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+}
+
+.comment-text {
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 0.5rem;
+    word-wrap: break-word;
+}
+
+.comment-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.delete-comment-btn {
+    background: rgba(255, 100, 100, 0.1);
+    border: 1px solid rgba(255, 100, 100, 0.3);
+    color: rgba(255, 100, 100, 0.9);
+    padding: 0.25rem 0.75rem;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.delete-comment-btn:hover {
+    background: rgba(255, 100, 100, 0.2);
+    border-color: rgba(255, 100, 100, 0.6);
+    color: rgba(255, 100, 100, 1);
+}
+
+.no-comments {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+/* Comments Collapsible Styles */
+.comments-header {
+    margin-bottom: 0.5rem;
+}
+
+.comments-title-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.comments-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.toggle-comments-btn {
+    background: rgba(0, 200, 200, 0.1);
+    border: 1px solid rgba(0, 200, 200, 0.3);
+    color: rgba(0, 200, 200, 0.9);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.toggle-comments-btn:hover {
+    background: rgba(0, 200, 200, 0.2);
+    border-color: rgba(0, 200, 200, 0.6);
+    color: rgba(0, 200, 200, 1);
+}
+
+.collapse-all-comments-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.collapse-all-comments-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.comments-collapsible {
+    max-height: 1000px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.comments-collapsible.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+.comment-form.collapsed {
+    display: none;
+}
+
+/* Comments list collapsed state */
+.comments-list.collapsed {
+    display: none;
+}
+
+.comments-list.expanded {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Smooth transition for comment form */
+.comment-form {
+    transition: opacity 0.3s ease;
+}
+
+.comment-form.collapsed {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+/* Animation for expanding/collapsing */
+@keyframes expandComments {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+    to {
+        max-height: 1000px;
+        opacity: 1;
+    }
+}
+
+@keyframes collapseComments {
+    from {
+        max-height: 1000px;
+        opacity: 1;
+    }
+    to {
+        max-height: 0;
+        opacity: 0;
+    }
+}
+
+.comments-collapsible.expanding {
+    animation: expandComments 0.3s ease-out forwards;
+}
+
+.comments-collapsible.collapsing {
+    animation: collapseComments 0.3s ease-out forwards;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .comments-title-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .comments-controls {
+        width: 100%;
+        justify-content: flex-start;
+    }
 }

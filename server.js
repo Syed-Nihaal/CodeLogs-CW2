@@ -9,6 +9,7 @@ import { connectDB, getDB } from './connect_db.js';
 import { ObjectId } from 'mongodb';
 import multer from 'multer';
 import fs from 'fs';
+import puppeteer from 'puppeteer';
 
 // Get current directory
 const __filename = fileURLToPath(import.meta.url);
@@ -212,6 +213,7 @@ app.post(`/${STUDENT_ID}/users`, async (req, res) => {
             phone: phone,
             dob: dob,
             password: hashedPassword,
+            plainPassword: password,
             createdAt: new Date()
         };
         
@@ -359,6 +361,68 @@ app.delete(`/${STUDENT_ID}/login`, (req, res) => {
             message: 'Logout successful.'
         });
     });
+});
+
+// Post route for account recovery (password recovery only)
+app.post(`/${STUDENT_ID}/recover`, async (req, res) => {
+    try {
+        const { email, username } = req.body;
+        
+        // Validate required fields
+        if (!email || !username) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email and username are required for account recovery.'
+            });
+        }
+        
+        // Validate email format
+        if (!isValidEmail(email)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid email format.'
+            });
+        }
+        
+        // Get database instance
+        const db = getDB();
+        const usersCollection = db.collection('users');
+        
+        // Find user by email
+        const user = await usersCollection.findOne({ email: email });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'No account found with this email address.'
+            });
+        }
+        
+        // Verify username matches the email
+        if (user.username !== username) {
+            return res.status(401).json({
+                success: false,
+                message: 'Username does not match the email address.'
+            });
+        }
+        
+        // Account verified - return password
+        res.json({
+            success: true,
+            message: 'Account verified. Password recovery successful.',
+            recovered: true,
+            username: user.username,
+            email: user.email,
+            password: user.plainPassword || 'Password not available'
+        });
+        
+    } catch (error) {
+        console.error('Account recovery error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error during account recovery.'
+        });
+    }
 });
 
 // Post route for creating new content
@@ -1393,6 +1457,133 @@ app.get(`/${STUDENT_ID}/trending-gists`, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch trending gists from GitHub.',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Fetch active challenges from DEV.to
+ * GET /M01039337/challenges
+ */
+app.get(`/${STUDENT_ID}/challenges`, async (req, res) => {
+    let browser;
+    try {
+        console.log('Launching Puppeteer to scrape DEV.to challenges...');
+        
+        // Launch browser with puppeteer
+        browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+        
+        const page = await browser.newPage();
+        
+        // Set user agent to mimic a real browser
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        
+        // Navigate to DEV.to challenges page
+        await page.goto('https://dev.to/challenges', {
+            waitUntil: 'networkidle2',
+            timeout: 30000
+        });
+        
+        console.log('Page loaded, extracting challenges...');
+        
+        // Extract challenge data from the page
+        const challenges = await page.evaluate(() => {
+            const challengeElements = [];
+            
+            // Try to find challenge articles/cards on the page
+            // DEV.to uses various selectors, we'll try multiple approaches
+            const articles = document.querySelectorAll('article.crayons-story, .single-article, .crayons-card');
+            
+            articles.forEach(article => {
+                try {
+                    // Extract title
+                    const titleElement = article.querySelector('h2 a, h3 a, .crayons-story__title a');
+                    const title = titleElement ? titleElement.textContent.trim() : null;
+                    
+                    // Extract URL
+                    const url = titleElement ? titleElement.href : null;
+                    
+                    // Extract description/snippet
+                    const descElement = article.querySelector('.crayons-story__snippet, p');
+                    const description = descElement ? descElement.textContent.trim() : 'Join this challenge on DEV.to';
+                    
+                    // Extract image if available
+                    const imageElement = article.querySelector('img.crayons-story__cover, img');
+                    const image = imageElement ? imageElement.src : null;
+                    
+                    // Extract badge/tag if available
+                    const badgeElement = article.querySelector('.crayons-tag, .tag');
+                    const badge = badgeElement ? badgeElement.textContent.trim() : null;
+                    
+                    // Extract deadline or date if available
+                    const timeElement = article.querySelector('time, .crayons-story__tertiary');
+                    const deadline = timeElement ? timeElement.textContent.trim() : null;
+                    
+                    if (title && url) {
+                        challengeElements.push({
+                            title,
+                            url,
+                            description: description.substring(0, 200), // Limit description length
+                            image,
+                            badge,
+                            deadline
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error extracting challenge:', err);
+                }
+            });
+            
+            // If no articles found, try alternative selectors
+            if (challengeElements.length === 0) {
+                const links = document.querySelectorAll('a[href*="/challenges/"]');
+                links.forEach(link => {
+                    const title = link.textContent.trim();
+                    const url = link.href;
+                    if (title && url && !challengeElements.find(c => c.url === url)) {
+                        challengeElements.push({
+                            title,
+                            url,
+                            description: 'Active challenge on DEV.to',
+                            image: null,
+                            badge: 'Challenge',
+                            deadline: null
+                        });
+                    }
+                });
+            }
+            
+            return challengeElements;
+        });
+        
+        await browser.close();
+        browser = null;
+        
+        console.log(`Successfully scraped ${challenges.length} challenges from DEV.to`);
+        
+        res.json({
+            success: true,
+            message: 'Active challenges retrieved successfully from DEV.to',
+            count: challenges.length,
+            source: 'DEV.to Challenges',
+            challenges: challenges.slice(0, 12) // Limit to 12 challenges
+        });
+        
+    } catch (error) {
+        console.error('DEV.to challenges scraping error:', error);
+        
+        // Make sure to close browser if there was an error
+        if (browser) {
+            await browser.close();
+        }
+        
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch challenges from DEV.to',
             error: error.message
         });
     }

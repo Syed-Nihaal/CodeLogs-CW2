@@ -392,6 +392,7 @@ class BlogManager {
      * Sends GET request to /M01039337/contents
      */
     async loadAllPosts() {
+        console.log('loadAllPosts called with filter:', this.currentLanguageFilter);
         try {
             // Build query parameters using explicit language filter to avoid broad matches (e.g., "C")
             const queryParams = new URLSearchParams();
@@ -597,7 +598,8 @@ class BlogManager {
     }
 
     /**
-     * Render posts to specified container with optional pagination
+     * FIXED: Render posts to specified container with optional pagination
+     * Added unique IDs for comments and likes sections to prevent conflicts
      * @param {Array} posts - Array of post objects
      * @param {string} containerId - ID of container element
      * @param {boolean} showPagination - Whether to show pagination controls
@@ -605,6 +607,7 @@ class BlogManager {
      * @param {number} totalPages - Total number of pages
      */
     renderPosts(posts, containerId, showPagination = false, currentPage = 1, totalPages = 1) {
+        console.log('renderPosts called:', { containerId, postsCount: posts.length, showPagination });
         const container = document.getElementById(containerId);
         
         if (!container) {
@@ -680,15 +683,18 @@ class BlogManager {
         
         container.innerHTML = html;
         
-        // Load comments and likes for each post
-        posts.forEach(post => {
-            if (window.commentsManager) {
-                window.commentsManager.loadCommentsForPost(post._id);
-            }
-            if (window.likesManager) {
-                window.likesManager.loadLikesForPost(post._id);
-            }
-        });
+        // FIXED: Load comments and likes for each post AFTER rendering is complete
+        // Use setTimeout to ensure DOM is fully updated before attaching event listeners
+        setTimeout(() => {
+            posts.forEach(post => {
+                if (window.commentsManager) {
+                    window.commentsManager.loadCommentsForPost(post._id);
+                }
+                if (window.likesManager) {
+                    window.likesManager.loadLikesForPost(post._id);
+                }
+            });
+        }, 100);
         
         // Add event listeners to pagination buttons
         if (showPagination && totalPages > 1) {

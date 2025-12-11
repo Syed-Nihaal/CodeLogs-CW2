@@ -9,5 +9,5 @@ profile.png	-	https://icons8.com/icon/1Wf241bLN9LO/people
 post.png 	- 	https://icons8.com/icon/k3VIMLgX0A6W/upload
 postboard.png 	-	https://icons8.com/icon/dfiNvwAesiYh/noticeboard
 find.png	-	https://icons8.com/icon/60982/find-user-male
+challenges.png	-	https://icons8.com/icon/R7EQNlLkTSlI/goal
 background.gif	-	https://31.media.tumblr.com/4717a813263f471b0def42d70c835ad5/tumblr_mtw0ojDUCQ1ru39xmo1_500.gif
-background2.gif	-	https://media.licdn.com/dms/image/v2/C5612AQFQoZYhlduycA/article-cover_image-shrink_600_2000/article-cover_image-shrink_600_2000/0/1626287779419?e=2147483647&v=beta&t=qJRYeRAH07qsyRsjSX6IbBiDcMwQrUVEzd1M-vfhsSQ

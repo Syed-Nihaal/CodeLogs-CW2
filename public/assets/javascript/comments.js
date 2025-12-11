@@ -2,6 +2,7 @@
  * Comments Manager class
  * Handles adding, displaying, and deleting comments on posts
  * UPDATED: Added collapsible comments functionality
+ * FIXED: Event delegation now properly handles dynamically loaded posts
  */
 class CommentsManager {
     constructor() {
@@ -23,42 +24,59 @@ class CommentsManager {
     }
 
     /**
-     * Set up event listeners for comment interactions
+     * FIXED: Set up event listeners for comment interactions
+     * Using proper event delegation that works with dynamically loaded content
      */
     setupEventListeners() {
-        // Event delegation for comment form submissions
+        // FIXED: Event delegation for comment form submissions
+        // Use document as the parent to catch all dynamically added forms
         document.addEventListener('submit', (e) => {
-            if (e.target.classList.contains('comment-form')) {
+            // Check if the submitted target is a comment-form or submitted from within one
+            const form = e.target.classList.contains('comment-form') 
+                ? e.target 
+                : e.target.closest('.comment-form');
+            
+            if (form) {
+                console.log('Comment form submitted');
                 e.preventDefault();
-                this.handleCommentSubmit(e.target);
+                e.stopPropagation();
+                this.handleCommentSubmit(form);
             }
-        });
+        }, true); // Use capture phase to ensure we catch the event
 
-        // Event delegation for delete comment buttons
+        // FIXED: Event delegation for all click events
         document.addEventListener('click', (e) => {
+            // Delete comment buttons
             if (e.target.classList.contains('delete-comment-btn')) {
+                console.log('Delete comment button clicked');
                 e.preventDefault();
+                e.stopPropagation();
                 const commentId = e.target.getAttribute('data-comment-id');
                 this.deleteComment(commentId, e.target.closest('.comment'));
+                return;
             }
             
-            // NEW: Event delegation for collapse/expand toggle buttons
-            if (e.target.classList.contains('toggle-comments-btn') || 
-                e.target.closest('.toggle-comments-btn')) {
+            // Toggle comments buttons
+            const toggleBtn = e.target.closest('.toggle-comments-btn');
+            if (toggleBtn) {
+                console.log('Toggle comments button clicked');
                 e.preventDefault();
-                const target = e.target.classList.contains('toggle-comments-btn') ? 
-                    e.target : e.target.closest('.toggle-comments-btn');
-                const postId = target.getAttribute('data-post-id');
-                this.toggleComments(postId, target);
+                e.stopPropagation();
+                const postId = toggleBtn.getAttribute('data-post-id');
+                this.toggleComments(postId, toggleBtn);
+                return;
             }
             
-            // NEW: Event delegation for collapse all comments button
+            // Collapse all comments button
             if (e.target.classList.contains('collapse-all-comments-btn')) {
+                console.log('Collapse all comments button clicked');
                 e.preventDefault();
+                e.stopPropagation();
                 const postId = e.target.getAttribute('data-post-id');
                 this.collapseAllComments(postId);
+                return;
             }
-        });
+        }, true); // Use capture phase
     }
 
     /**
@@ -495,6 +513,7 @@ class CommentsManager {
 /**
  * Likes Manager class
  * Handles liking and disliking posts
+ * FIXED: Event delegation for dynamically loaded posts
  */
 class LikesManager {
     constructor() {
@@ -516,23 +535,36 @@ class LikesManager {
     }
 
     /**
-     * Set up event listeners for like/dislike buttons
+     * FIXED: Set up event listeners for like/dislike buttons
+     * Using proper event delegation
      */
     setupEventListeners() {
-        // Event delegation for like buttons
+        // FIXED: Event delegation for like/dislike buttons
         document.addEventListener('click', (e) => {
+            // Like button
             if (e.target.classList.contains('like-btn')) {
+                console.log('Like button clicked, postId:', e.target.getAttribute('data-post-id'));
                 e.preventDefault();
+                e.stopPropagation();
                 const postId = e.target.getAttribute('data-post-id');
-                this.likePost(postId, true);
+                if (postId) {
+                    this.likePost(postId, true);
+                }
+                return;
             }
             
+            // Dislike button
             if (e.target.classList.contains('dislike-btn')) {
+                console.log('Dislike button clicked, postId:', e.target.getAttribute('data-post-id'));
                 e.preventDefault();
+                e.stopPropagation();
                 const postId = e.target.getAttribute('data-post-id');
-                this.likePost(postId, false);
+                if (postId) {
+                    this.likePost(postId, false);
+                }
+                return;
             }
-        });
+        }, true); // Use capture phase
     }
 
     /**
@@ -541,6 +573,7 @@ class LikesManager {
      * @param {boolean} isLike - True for like, false for dislike
      */
     async likePost(postId, isLike) {
+        console.log('likePost called:', { postId, isLike });
         try {
             const response = await fetch(`${this.baseURL}/posts/${postId}/like`, {
                 method: 'POST',
@@ -551,10 +584,13 @@ class LikesManager {
                 body: JSON.stringify({ isLike: isLike })
             });
 
+            console.log('Like response status:', response.status);
             const data = await response.json();
+            console.log('Like response data:', data);
 
             if (data.success) {
                 // Update UI
+                console.log('Updating likes UI for postId:', postId);
                 this.updateLikesUI(postId);
             } else {
                 // Handle not logged in
@@ -576,14 +612,17 @@ class LikesManager {
      * @param {string} postId - Post ID
      */
     async updateLikesUI(postId) {
+        console.log('updateLikesUI called for postId:', postId);
         try {
             const response = await fetch(`${this.baseURL}/posts/${postId}/likes`, {
                 method: 'GET',
                 credentials: 'same-origin'
             });
             const data = await response.json();
+            console.log('Likes data received:', data);
 
             if (data.success) {
+                console.log('Calling displayLikes with:', { postId, likeCount: data.likeCount, dislikeCount: data.dislikeCount, userVote: data.userVote });
                 this.displayLikes(postId, data.likeCount, data.dislikeCount, data.userVote);
             }
 
@@ -600,9 +639,13 @@ class LikesManager {
      * @param {string} userVote - User's current vote ('like', 'dislike', or null)
      */
     displayLikes(postId, likeCount, dislikeCount, userVote) {
+        console.log('displayLikes called:', { postId, likeCount, dislikeCount, userVote });
         const likesContainer = document.getElementById(`likes-${postId}`);
         
+        console.log('Likes container found:', likesContainer ? 'yes' : 'NO');
+        
         if (!likesContainer) {
+            console.error('Likes container not found for postId:', postId);
             return;
         }
 
@@ -613,7 +656,11 @@ class LikesManager {
             </div>
         `;
 
+        console.log('Setting innerHTML to:', html);
+        console.log('Container before:', likesContainer.innerHTML);
         likesContainer.innerHTML = html;
+        console.log('Container after:', likesContainer.innerHTML);
+        console.log('Container element:', likesContainer);
     }
 
     /**

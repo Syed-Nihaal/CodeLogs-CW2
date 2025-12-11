@@ -27,6 +27,9 @@
                     <a href="#" class="nav-link" data-page="profile" title="Profile">
                         <img src="assets/img/profile.png" alt="Profile" class="nav-icons">
                     </a>
+                    <a href="#" class="nav-link" data-page="challenges" title="Challenges">
+                        <img src="assets/img/challenges.png" alt="Challenges" class="nav-icons">
+                    </a>
                     <!-- Search box -->
                     <div class="search-container">
                         <button id="searchToggle" class="search-toggle" title="Search users">
@@ -389,6 +392,26 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Challenges Page -->
+            <div id="challenges-page" class="page-content hidden">
+                <div class="challenges-container">
+                    <h1 class="page-title">Active Challenges from DEV.to Community</h1>
+                    <p class="page-description">Discover active coding challenges from the DEV.to community. Participate and showcase your skills!</p>
+                    
+                    <div id="challengesLoading" class="loading-message">
+                        <p>Loading active challenges...</p>
+                    </div>
+                    
+                    <div id="challengesError" class="error-message hidden">
+                        <p>Failed to load challenges. Please try again later.</p>
+                    </div>
+                    
+                    <div id="challengesList" class="challenges-grid">
+                        <!-- Challenges will be loaded here dynamically -->
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- JavaScript files - load in correct order -->
@@ -400,5 +423,6 @@
         <script src="assets/javascript/profile.js"></script>
         <script src="assets/javascript/comments.js"></script>
         <script src="assets/javascript/blog.js"></script>
+        <script src="assets/javascript/challenges.js"></script>
     </body>
 </html>

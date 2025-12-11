@@ -34,38 +34,6 @@ class RecoveryManager {
         }
     }
 
-    // Finding user by email address
-    findUserByEmail(email) {
-        const users = window.authManager ? window.authManager.getUsers() : [];
-        return users.find(u => u.email === email);
-    }
-
-    // Handle password recovery (when username is provided)
-    handlePasswordRecovery(user, username) {
-        // Verify username matches email
-        if (user.username === username) {
-            this.displayMessage(`Password recovery successful! Your password is: ${user.password}`, true);
-            this.redirectToLogin();
-            return true;
-        } else {
-            this.displayMessage('Username does not match the email address.');
-            return false;
-        }
-    }
-
-    // Handle username recovery (when password is provided)
-    handleUsernameRecovery(user, password) {
-        // Verify password matches email
-        if (user.password === password) {
-            this.displayMessage(`Username recovery successful! Your username is: ${user.username}`, true);
-            this.redirectToLogin();
-            return true;
-        } else {
-            this.displayMessage('Password does not match the email address.');
-            return false;
-        }
-    }
-
     // Redirecting to login page after delay
     redirectToLogin() {
         setTimeout(() => {
@@ -76,7 +44,7 @@ class RecoveryManager {
     }
 
     // Handling recovery form submission
-    handleRecovery(e) {
+    async handleRecovery(e) {
         e.preventDefault();
 
         // Get form input values and trim whitespace
@@ -98,29 +66,45 @@ class RecoveryManager {
             return;
         }
 
-        // Find user by email
-        const user = this.findUserByEmail(email);
-
-        // Case 1: Email not found
-        if (!user) {
-            this.displayMessage('No account found with this email address.');
+        // Only username should be provided for password recovery
+        if (!username) {
+            this.displayMessage('Please provide your username to recover your password.');
             return;
         }
 
-        // Case 2: User entered email + username (recover password)
-        if (username && !password) {
-            this.handlePasswordRecovery(user, username);
+        if (password) {
+            this.displayMessage('Password field is not used for recovery. Please only provide email and username.');
             return;
         }
 
-        // Case 3: User entered email + password (recover username)
-        if (password && !username) {
-            this.handleUsernameRecovery(user, password);
-            return;
-        }
+        try {
+            // Send password recovery request to server
+            const response = await fetch(`${this.baseURL}/recover`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email,
+                    username: username,
+                    password: undefined
+                })
+            });
 
-        // Case 4: User entered both username and password or neither
-        this.displayMessage('Please provide either email + username OR email + password for recovery.');
+            const data = await response.json();
+
+            if (data.success && data.recovered) {
+                // Success message with password displayed
+                this.displayMessage(`✓ Password recovery successful! Your password is: ${data.password}`, true);
+                this.redirectToLogin();
+            } else {
+                // Error message from server
+                this.displayMessage(data.message || 'Account recovery failed.');
+            }
+        } catch (error) {
+            console.error('Recovery error:', error);
+            this.displayMessage('An error occurred during account recovery. Please try again.');
+        }
     }
 }
 

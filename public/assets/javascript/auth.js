@@ -32,21 +32,18 @@ class AuthManager {
             logoutButton.addEventListener('click', (e) => this.handleLogout(e));
         }
 
-        // Use event delegation on document body for all navigation links
-        // This handles links that may be hidden/shown dynamically
+        // Handle non-nav data-page links (like buttons in page content)
+        // Nav links are handled by BlogManager to avoid duplication
         document.body.addEventListener('click', (e) => {
-            // Check if clicked element or its parent has data-page attribute
             const target = e.target.closest('[data-page]');
-            if (target) {
+            // Only handle if it's NOT a nav-link (those are handled by BlogManager)
+            if (target && !target.classList.contains('nav-link')) {
                 const page = target.getAttribute('data-page');
                 if (page && window.blogManager) {
                     e.preventDefault();
                     window.blogManager.showPage(page);
                 }
             }
-            
-            // Don't prevent default for external links (those without data-page)
-            // This allows links like GitHub to work normally
         });
     }
 

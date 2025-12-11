@@ -69,6 +69,25 @@ async function setupDatabase() {
         await likesCollection.createIndex({ user: 1 });
         console.log('Likes collection indexes created');
         
+        // Migration: Add plainPassword field to existing users that don't have it
+        console.log('\nMigrating users to add plainPassword field...');
+        const usersWithoutPlainPassword = await usersCollection.find({ plainPassword: { $exists: false } }).toArray();
+        if (usersWithoutPlainPassword.length > 0) {
+            console.log(`Found ${usersWithoutPlainPassword.length} users without plainPassword field`);
+            for (const user of usersWithoutPlainPassword) {
+                // Generate a temporary password based on username if plainPassword doesn't exist
+                const tempPassword = `${user.username}123456`;
+                await usersCollection.updateOne(
+                    { _id: user._id },
+                    { $set: { plainPassword: tempPassword } }
+                );
+                console.log(`Updated user ${user.username} with temporary password`);
+            }
+            console.log('Migration complete');
+        } else {
+            console.log('All users have plainPassword field');
+        }
+        
         // Display statistics
         console.log('Database Setup Complete');
         console.log(`Database: ${DB_NAME}`);
@@ -90,7 +109,7 @@ async function setupDatabase() {
     } finally {
         // Close connection
         await client.close();
-        console.log('\n Database connection closed');
+        console.log('\n Database setup closed');
     }
 }
 
